@@ -1,10 +1,6 @@
 var express = require('express');
 var router = express.Router();
 
-/* GET users listing. */
-router.post('/user-interface', function(req, res, next) {
-  res.render('/user/user-interface')
-});
-
+// No user-interface route is required after role-based dashboard routing was implemented.
 
 module.exports = router;

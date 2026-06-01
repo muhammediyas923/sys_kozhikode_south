@@ -1,5 +1,5 @@
-module.exports={
-    USER_COLLECTION:'user',
-    
-    
-}
+module.exports = {
+  USER_COLLECTION: 'user',
+  PROJECT_COLLECTION: 'projects',
+  LOCATION_COLLECTION: 'locations',
+};

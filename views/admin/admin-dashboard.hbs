@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | SYS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="/stylesheets/variables.css">
+    <link rel="stylesheet" href="/stylesheets/main.css">
+    <link rel="stylesheet" href="/stylesheets/components.css">
+</head>
+<body class="bg-light min-vh-100 d-flex flex-column admin-dashboard">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand logo mb-0 flex-shrink-0 py-0 d-flex align-items-center me-2" href="#hero">
+                <img src="/images/Gemini_Generated_Image_41luhh41luhh41lu-removebg-preview.png" alt="SYS logo" class="navbar-logo">
+                <span class="visually-hidden">SYS</span>
+            </a>
+            <div class="ms-auto">
+                <a href="/logout" class="btn btn-outline-success">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-5">
+        <div class="card shadow-sm dashboard-section">
+            <div class="card-body">
+                <h1 class="h3 mb-3">Admin Dashboard</h1>
+                <p class="mb-1">Welcome back, <strong>{{user.Name}}</strong>.</p>
+                <p class="text-muted">You are signed in as an <strong>{{user.Role}}</strong>.</p>
+                <div class="row g-4 mt-4">
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="border rounded p-4 bg-white h-100 summary-card">
+                            <h5 class="mb-2">Total Zones</h5>
+                            <p class="display-6 mb-0" id="total-zones">10</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="border rounded p-4 bg-white h-100 summary-card">
+                            <h5 class="mb-2">Total Circles</h5>
+                            <p class="display-6 mb-0" id="total-circles">49</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="border rounded p-4 bg-white h-100 summary-card">
+                            <h5 class="mb-2">Total Units</h5>
+                            <p class="display-6 mb-0" id="total-units">498</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="border rounded p-4 bg-white h-100 summary-card">
+                            <h5 class="mb-2">Total Programmes</h5>
+                            <p class="display-6 mb-0" id="total-projects">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between mb-3 gap-3">
+                            <div class="w-100 w-md-auto">
+                                <h4 id="project-form-title" class="mb-1">Programme Management</h4>
+                                <p class="text-muted mb-0">Add, update, or delete programmes and assign them to Zone / Circle / Unit.</p>
+                            </div>
+                            <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 w-100 w-md-auto">
+                                <button id="admin-refresh-btn" type="button" class="btn btn-outline-info w-100 w-sm-auto">Refresh Dashboard</button>
+                                <button id="project-reset-btn" type="button" class="btn btn-outline-secondary w-100 w-sm-auto">Reset Form</button>
+                            </div>
+                        </div>
+                        <div id="admin-last-refresh" class="text-muted small mb-3">Last updated just now.</div>
+                        <form id="project-form" class="row g-3">
+                            <input type="hidden" id="project-id" name="projectId" value="">
+                            <div class="col-md-6">
+                                <label for="project-name" class="form-label">Programme Name</label>
+                                <input id="project-name" name="name" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="project-description" class="form-label">Description</label>
+                                <input id="project-description" name="description" class="form-control" placeholder="Optional details">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="project-zone" class="form-label">Zone</label>
+                                <select id="project-zone" name="zone" class="form-select" required>
+                                    <option value="">Loading zones...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="project-circle" class="form-label">Circle</label>
+                                <select id="project-circle" name="circle" class="form-select" required>
+                                    <option value="">Select zone first</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="project-unit" class="form-label">Unit</label>
+                                <select id="project-unit" name="unit" class="form-select" required>
+                                    <option value="">Select circle first</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">Save Programme</button>
+                            </div>
+                        </form>
+                        <div id="admin-project-message" class="mt-3"></div>
+                        <div class="table-responsive mt-4">
+                            <table class="table table-bordered table-striped mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Programme</th>
+                                        <th>Zone</th>
+                                        <th>Circle</th>
+                                        <th>Unit</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-project-table-body">
+                                    <tr><td colspan="6" class="text-center">Loading programmes...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h4 class="mb-3">Progress Monitoring</h4>
+                        <p class="text-muted">Review completion status for programmes at the Unit level.</p>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Zone</th>
+                                        <th>Circle</th>
+                                        <th>Unit</th>
+                                        <th>Programmes</th>
+                                        <th>Completed</th>
+                                        <th>Completion</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-progress-table-body">
+                                    <tr><td colspan="6" class="text-center">Loading progress details...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="mt-auto py-3 bg-white border-top">
+        <div class="container text-muted text-center">&copy; 2026 Sunni Yuvajana Sangham (SYS) Kerala</div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="/javascripts/admin-dashboard.js"></script>
+</body>
+</html>

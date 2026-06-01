@@ -6,62 +6,73 @@ function normalizeEmail(email) {
   return typeof email === 'string' ? email.trim().toLowerCase() : '';
 }
 
+async function seedDefaultAccounts() {
+  const database = db.getDb();
+  const accounts = [
+    {
+      Name: 'SYS Admin',
+      Email: process.env.ADMIN_EMAIL || 'admin@sys.org',
+      Password: process.env.ADMIN_PASSWORD || 'Admin@1234',
+      Role: 'Admin',
+    },
+    {
+      Name: 'SYS User',
+      Email: process.env.USER_EMAIL || 'user@sys.org',
+      Password: process.env.USER_PASSWORD || 'User@1234',
+      Role: 'User',
+    },
+  ];
+
+  for (const account of accounts) {
+    const normalizedEmail = normalizeEmail(account.Email);
+    const existing = await database
+      .collection(collections.USER_COLLECTION)
+      .findOne({ Email: normalizedEmail });
+
+    if (!existing) {
+      const hashed = await bcrypt.hash(account.Password, 10);
+      await database.collection(collections.USER_COLLECTION).insertOne({
+        Name: account.Name,
+        Email: normalizedEmail,
+        Password: hashed,
+        Role: account.Role,
+      });
+    }
+  }
+}
+
 module.exports = {
-    doSignup: async (userData) => {
-        const database = db.getDb();
-        const email = normalizeEmail(userData.Email);
-        const name = typeof userData.Name === 'string' ? userData.Name.trim() : '';
-        const password = userData.Password;
+  seedDefaultAccounts,
 
-        if (!name || !email || !password || !/.+@.+\..+/.test(email) || password.length < 8) {
-            return {
-                status: false,
-                message: 'Name, valid email, and password (min 8 chars) are required.',
-            };
-        }
+  doLogin: async (userData) => {
+    const database = db.getDb();
+    const email = normalizeEmail(userData.Email);
+    const password = userData.Password;
 
-        const existing = await database
-            .collection(collections.USER_COLLECTION)
-            .findOne({ Email: email });
-        if (existing) {
-            return { status: false, message: 'Email already registered' };
-        }
+    if (!email || !password) {
+      return { status: false, message: 'Email and password are required' };
+    }
 
-        const hashed = await bcrypt.hash(password, 10);
-        const user = {
-            Name: name,
-            Email: email,
-            Password: hashed,
-        };
-        const res = await database
-            .collection(collections.USER_COLLECTION)
-            .insertOne(user);
-        const saved = { _id: res.insertedId, Name: user.Name, Email: user.Email };
-        return { status: true, user: saved };
-    },
+    const user = await database
+      .collection(collections.USER_COLLECTION)
+      .findOne({ Email: email });
 
-    doLogin: async (userData) => {
-        const database = db.getDb();
-        const email = normalizeEmail(userData.Email);
-        const password = userData.Password;
+    if (!user) {
+      return { status: false, message: 'Invalid credentials' };
+    }
 
-        const user = await database
-            .collection(collections.USER_COLLECTION)
-            .findOne({ Email: email });
-        if (!user) {
-            return { status: false, message: 'Invalid credentials' };
-        }
-        const match = await bcrypt.compare(password, user.Password);
-        if (match) {
-            const sanitized = {
-                _id: user._id,
-                Name: user.Name,
-                Email: user.Email,
-                isAdmin: user.Email.toLowerCase() === process.env.ADMIN_EMAIL?.toLowerCase(),
-            };
-            return { status: true, user: sanitized };
-        } else {
-            return { status: false, message: 'Invalid credentials' };
-        }
-    },
+    const match = await bcrypt.compare(password, user.Password);
+    if (!match) {
+      return { status: false, message: 'Invalid credentials' };
+    }
+
+    const sanitized = {
+      _id: user._id,
+      Name: user.Name,
+      Email: user.Email,
+      Role: user.Role || 'User',
+    };
+
+    return { status: true, user: sanitized };
+  },
 };
