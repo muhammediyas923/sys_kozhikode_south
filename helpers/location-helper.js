@@ -28,7 +28,7 @@ function buildDefaultLocations() {
       circleIndex += 1;
     }
     zones.push({
-      name: `Zone ${zoneNumber}`,
+      name: zoneNumber === 1 ? 'Koduvally' : `Zone ${zoneNumber}`,
       circles,
     });
   }
@@ -55,6 +55,9 @@ async function getLocations() {
   const database = db.getDb();
   const locations = await database.collection(collections.LOCATION_COLLECTION).findOne({ type: 'default' });
   if (locations) {
+    if (locations.zones && locations.zones.length > 0) {
+      locations.zones[0].name = 'Koduvally';
+    }
     return locations;
   }
   const fallback = buildDefaultLocations();

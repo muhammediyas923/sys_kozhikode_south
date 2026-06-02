@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadProjects() {
-    if (!selectedZone || !selectedCircle || !selectedUnit) {
+    if (!selectedUnit) {
       projects = [];
       renderProjectsTable();
       return;
@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
     await fetch(`/api/projects/${projectId}/completion`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ completed }),
+      body: JSON.stringify({ completed, zone: selectedZone, circle: selectedCircle, unit: selectedUnit }),
     });
     await loadProjects();
   }

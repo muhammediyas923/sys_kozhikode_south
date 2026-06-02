@@ -1,11 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const zoneSelect = document.getElementById('project-zone');
-  const circleSelect = document.getElementById('project-circle');
-  const unitSelect = document.getElementById('project-unit');
   const projectForm = document.getElementById('project-form');
   const projectMessage = document.getElementById('admin-project-message');
   const projectTableBody = document.getElementById('admin-project-table-body');
-  const progressTableBody = document.getElementById('admin-progress-table-body');
+  const programMonitoringContainer = document.getElementById('admin-program-monitoring');
   const totalZonesValue = document.getElementById('total-zones');
   const totalCirclesValue = document.getElementById('total-circles');
   const totalUnitsValue = document.getElementById('total-units');
@@ -16,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const refreshButton = document.getElementById('admin-refresh-btn');
   const lastRefreshLabel = document.getElementById('admin-last-refresh');
 
-  let locations = [];
   let projects = [];
   let currentEditId = null;
 
@@ -27,53 +23,71 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 5000);
   }
 
-  function renderLocationSelectors() {
-    zoneSelect.innerHTML = '<option value="">Select Zone</option>' + locations.map(zone => `<option value="${zone.name}">${zone.name}</option>`).join('');
-    circleSelect.innerHTML = '<option value="">Select Circle</option>';
-    unitSelect.innerHTML = '<option value="">Select Unit</option>';
-  }
 
-  function updateCircles() {
-    const selectedZone = locations.find((zone) => zone.name === zoneSelect.value);
-    if (!selectedZone) {
-      circleSelect.innerHTML = '<option value="">Select Circle</option>';
-      unitSelect.innerHTML = '<option value="">Select Unit</option>';
+  function renderProgramMonitoring(monitoring) {
+    if (!monitoring || !monitoring.length) {
+      programMonitoringContainer.innerHTML = '<div class="text-center text-muted">No programme monitoring data yet.</div>';
       return;
     }
-    circleSelect.innerHTML = '<option value="">Select Circle</option>' + selectedZone.circles.map(circle => `<option value="${circle.name}">${circle.name}</option>`).join('');
-    unitSelect.innerHTML = '<option value="">Select Unit</option>';
+
+    programMonitoringContainer.innerHTML = monitoring
+      .map((p) => {
+        const pid = p.projectId;
+        function listHtml(arr, type) {
+          const preview = arr.slice(0, 20).map((u) => `<div class="monitor-item">${u}</div>`).join('');
+          const full = arr.map((u) => `<div class="monitor-item">${u}</div>`).join('');
+          const moreButton = arr.length > 20 ? `<div><button class="btn btn-link btn-sm more-toggle" data-project-id="${pid}" data-type="${type}">...more</button></div>` : '';
+          return `
+            <div class="monitor-preview">${preview}${moreButton}</div>
+            <div class="monitor-full d-none" data-project-id="${pid}" data-type="${type}">${full}</div>
+          `;
+        }
+
+        return `
+        <div class="card mb-3 program-monitoring-card" data-project-id="${pid}">
+          <div class="card-body">
+            <h5 class="card-title mb-2">${p.name}</h5>
+            <div class="row">
+              <div class="col-md-6 col-12 mb-2">
+                <h6 class="mb-1">Completed <span class="badge bg-success ms-1">${p.completeUnits.length}</span></h6>
+                <div class="small text-muted">${listHtml(p.completeUnits, 'complete')}</div>
+              </div>
+              <div class="col-md-6 col-12 mb-2">
+                <h6 class="mb-1">Not Complete <span class="badge bg-secondary ms-1">${p.notCompleteUnits.length}</span></h6>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      })
+      .join('');
   }
 
-  function updateUnits() {
-    const selectedZone = locations.find((zone) => zone.name === zoneSelect.value);
-    const selectedCircle = selectedZone?.circles.find((circle) => circle.name === circleSelect.value);
-    if (!selectedCircle) {
-      unitSelect.innerHTML = '<option value="">Select Unit</option>';
-      return;
+  // delegate click for more/less toggles
+  programMonitoringContainer.addEventListener('click', (event) => {
+    const btn = event.target.closest('.more-toggle');
+    if (!btn) return;
+    const pid = btn.dataset.projectId;
+    const type = btn.dataset.type;
+    const fullSelector = `.monitor-full[data-project-id="${pid}"][data-type="${type}"]`;
+    const fullDiv = programMonitoringContainer.querySelector(fullSelector);
+    if (!fullDiv) return;
+    if (fullDiv.classList.contains('d-none')) {
+      fullDiv.classList.remove('d-none');
+      btn.textContent = 'less';
+    } else {
+      fullDiv.classList.add('d-none');
+      btn.textContent = '...more';
     }
-    unitSelect.innerHTML = '<option value="">Select Unit</option>' + selectedCircle.units.map(unit => `<option value="${unit}">${unit}</option>`).join('');
-  }
+  });
 
   function renderSummary(summary) {
     totalZonesValue.textContent = summary.totalZones || 10;
     totalCirclesValue.textContent = summary.totalCircles || 49;
     totalUnitsValue.textContent = summary.totalUnits || 498;
     totalProjectsValue.textContent = summary.totalProjects || 0;
-
-    progressTableBody.innerHTML = summary.progressSummary.length
-      ? summary.progressSummary
-          .map((item) => `
-            <tr>
-              <td>${item.zone}</td>
-              <td>${item.circle}</td>
-              <td>${item.unit}</td>
-              <td>${item.totalProjects}</td>
-              <td>${item.completedProjects}</td>
-              <td>${item.completionRate}%</td>
-            </tr>
-          `)
-          .join('')
-      : '<tr><td colspan="6" class="text-center">No programme progress data yet.</td></tr>';
+    // render vertical programme monitoring
+    renderProgramMonitoring(summary.programMonitoring || []);
   }
 
   function renderProjectTable() {
@@ -82,10 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
           .map((project) => `
             <tr>
               <td>${project.name}</td>
-              <td>${project.zone}</td>
-              <td>${project.circle}</td>
-              <td>${project.unit}</td>
-              <td>${project.completed ? 'Completed' : 'Pending'}</td>
               <td>
                 <button type="button" class="btn btn-sm btn-outline-primary me-2" data-action="edit" data-id="${project._id}">Edit</button>
                 <button type="button" class="btn btn-sm btn-outline-danger" data-action="delete" data-id="${project._id}">Delete</button>
@@ -93,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </tr>
           `)
           .join('')
-      : '<tr><td colspan="6" class="text-center">No programmes created yet.</td></tr>';
+      : '<tr><td colspan="2" class="text-center">No programmes created yet.</td></tr>';
   }
 
   async function loadLocations() {
@@ -131,7 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function refreshDashboard() {
-    await loadLocations();
     await loadSummary();
     await loadProjects();
     updateLastRefresh();
@@ -142,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
     projectIdInput.value = '';
     projectForm.reset();
     projectFormTitle.textContent = 'Add New Programme';
-    renderLocationSelectors();
   }
 
   projectForm.addEventListener('submit', async (event) => {
@@ -151,13 +159,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const payload = {
       name: formData.get('name').trim(),
       description: formData.get('description').trim(),
-      zone: formData.get('zone'),
-      circle: formData.get('circle'),
-      unit: formData.get('unit'),
     };
 
-    if (!payload.name || !payload.zone || !payload.circle || !payload.unit) {
-      showMessage('Programme name and location are required.', 'danger');
+    if (!payload.name) {
+      showMessage('Programme name is required.', 'danger');
       return;
     }
 
@@ -197,11 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
       projectFormTitle.textContent = 'Edit Programme';
       document.getElementById('project-name').value = project.name;
       document.getElementById('project-description').value = project.description || '';
-      document.getElementById('project-zone').value = project.zone;
-      updateCircles();
-      document.getElementById('project-circle').value = project.circle;
-      updateUnits();
-      document.getElementById('project-unit').value = project.unit;
       window.scrollTo({ top: projectForm.offsetTop - 20, behavior: 'smooth' });
       return;
     }
@@ -225,8 +225,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  zoneSelect.addEventListener('change', updateCircles);
-  circleSelect.addEventListener('change', updateUnits);
   refreshButton.addEventListener('click', refreshDashboard);
   resetButton.addEventListener('click', resetForm);
 

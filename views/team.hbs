@@ -1,0 +1,22 @@
+<main class="container py-5">
+    <div class="text-center mb-5">
+        <span class="overline text-primary">OUR TEAM</span>
+        <h1 class="mb-3">SYS Kozhikode South District Committee</h1>
+        <p class="text-muted mx-auto" style="max-width: 720px;">Meet the leaders and volunteers of the SYS Kozhikode South District Committee. Below is a showcase of the district committee members with their roles and responsibilities.</p>
+    </div>
+
+    <div class="row g-4">
+        {{#each team}}
+        <div class="col-md-6 col-lg-4">
+            <div class="card team-member-card h-100">
+                <div class="team-member-photo" style="background-image: url('{{this.photo}}');"></div>
+                <div class="card-body">
+                    <h5 class="card-title mb-1">{{this.name}}</h5>
+                    <p class="text-primary small mb-2">{{this.role}}</p>
+                    <p class="card-text text-muted">{{this.description}}</p>
+                </div>
+            </div>
+        </div>
+        {{/each}}
+    </div>
+</main>

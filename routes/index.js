@@ -39,11 +39,65 @@ router.get('/dashboard', auth.requireLogin, function(req, res) {
 });
 
 router.get('/admin-dashboard', auth.requireLogin, auth.requireRole('Admin'), function(req, res) {
+  // set a short-lived, HttpOnly cookie indicating dashboard session (non-sensitive)
+  res.cookie('sys_dashboard_session', `role=${req.session.user.Role};ts=${Date.now()}`, {
+    httpOnly: true,
+    sameSite: 'Lax',
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  });
   res.render('admin/admin-dashboard', { user: req.session.user });
 });
 
 router.get('/user-dashboard', auth.requireLogin, auth.requireRole('User'), function(req, res) {
+  // set a short-lived, HttpOnly cookie indicating dashboard session (non-sensitive)
+  res.cookie('sys_dashboard_session', `role=${req.session.user.Role};ts=${Date.now()}`, {
+    httpOnly: true,
+    sameSite: 'Lax',
+    maxAge: 24 * 60 * 60 * 1000,
+  });
   res.render('user/user-dashboard', { user: req.session.user });
+});
+
+router.get('/team', function(req, res) {
+  const team = [
+    {
+      name: 'Ameer Abdul Rahman',
+      role: 'District President',
+      description: 'Leading the SYS Kozhikode South District Committee and overseeing all district initiatives.',
+      photo: 'https://via.placeholder.com/600x600?text=President',
+    },
+    {
+      name: 'Zainab Fathima',
+      role: 'District Secretary',
+      description: 'Managing coordination across units and organizing district-level events.',
+      photo: 'https://via.placeholder.com/600x600?text=Secretary',
+    },
+    {
+      name: 'Muhammad Faiz',
+      role: 'Treasurer',
+      description: 'Responsible for financial planning, donations, and district funds management.',
+      photo: 'https://via.placeholder.com/600x600?text=Treasurer',
+    },
+    {
+      name: 'Safa Nazeer',
+      role: 'Women Wing Leader',
+      description: 'Driving women’s programs, outreach, and leadership development within the district.',
+      photo: 'https://via.placeholder.com/600x600?text=Women+Wing',
+    },
+    {
+      name: 'Hassan Shibli',
+      role: 'Youth Coordinator',
+      description: 'Coordinating youth volunteer activities and training across the district units.',
+      photo: 'https://via.placeholder.com/600x600?text=Youth+Coordinator',
+    },
+    {
+      name: 'Amina Reshma',
+      role: 'Public Relations Head',
+      description: 'Managing communications, publicity, and community relations for SYS Kozhikode South.',
+      photo: 'https://via.placeholder.com/600x600?text=PR+Head',
+    },
+  ];
+  res.render('team', { team });
 });
 
 router.get('/logout', function(req, res) {

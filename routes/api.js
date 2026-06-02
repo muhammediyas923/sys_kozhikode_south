@@ -18,6 +18,7 @@ router.get('/admin/summary', auth.requireLogin, auth.requireRole('Admin'), async
     const locations = await locationHelper.getLocations();
     const totalProjects = await projectHelper.getProjectCount();
     const progressSummary = await projectHelper.getProjectProgressSummary();
+    const programMonitoring = await projectHelper.getProjectMonitoring();
     return res.json({
       success: true,
       summary: {
@@ -26,6 +27,7 @@ router.get('/admin/summary', auth.requireLogin, auth.requireRole('Admin'), async
         totalUnits: locations.totalUnits || 498,
         totalProjects,
         progressSummary,
+        programMonitoring,
       },
     });
   } catch (error) {
@@ -44,11 +46,11 @@ router.get('/admin/projects', auth.requireLogin, auth.requireRole('Admin'), asyn
 
 router.post('/admin/projects', auth.requireLogin, auth.requireRole('Admin'), async (req, res, next) => {
   try {
-    const { name, description, zone, circle, unit } = req.body;
-    if (!name || !zone || !circle || !unit) {
-      return res.status(400).json({ success: false, message: 'Project name and location are required.' });
+    const { name, description } = req.body;
+    if (!name) {
+      return res.status(400).json({ success: false, message: 'Project name is required.' });
     }
-    const insertedId = await projectHelper.createProject({ name, description, zone, circle, unit });
+    const insertedId = await projectHelper.createProject({ name, description });
     const project = await projectHelper.getProjectById(insertedId);
     return res.json({ success: true, project });
   } catch (error) {
@@ -83,7 +85,16 @@ router.delete('/admin/projects/:id', auth.requireLogin, auth.requireRole('Admin'
 router.get('/user/projects', auth.requireLogin, async (req, res, next) => {
   try {
     const { zone, circle, unit } = req.query;
-    const projects = await projectHelper.getProjectsBySelection(zone, circle, unit);
+    const projects = await projectHelper.getAllProjects();
+    if (zone && circle && unit) {
+      const completions = await projectHelper.getUnitProjectCompletions(zone, circle, unit);
+      const completionMap = new Map(completions.map((item) => [item.projectId.toString(), item.completed]));
+      const projectsWithCompletion = projects.map((project) => ({
+        ...project,
+        completed: completionMap.get(project._id.toString()) || false,
+      }));
+      return res.json({ success: true, projects: projectsWithCompletion });
+    }
     return res.json({ success: true, projects });
   } catch (error) {
     return next(error);
@@ -93,9 +104,13 @@ router.get('/user/projects', auth.requireLogin, async (req, res, next) => {
 router.put('/projects/:id/completion', auth.requireLogin, async (req, res, next) => {
   try {
     const completed = req.body.completed === true || req.body.completed === 'true';
-    const updated = await projectHelper.setProjectCompletion(req.params.id, completed);
+    const { zone, circle, unit } = req.body;
+    if (!zone || !circle || !unit) {
+      return res.status(400).json({ success: false, message: 'Zone, circle, and unit are required for completion state.' });
+    }
+    const updated = await projectHelper.setUnitProjectCompletion(req.params.id, zone, circle, unit, completed);
     if (!updated) {
-      return res.status(404).json({ success: false, message: 'Project not found.' });
+      return res.status(404).json({ success: false, message: 'Project completion update failed.' });
     }
     return res.json({ success: true });
   } catch (error) {

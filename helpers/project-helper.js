@@ -42,6 +42,36 @@ async function getProjectsBySelection(zone, circle, unit) {
   return database.collection(collections.PROJECT_COLLECTION).find(query).sort({ name: 1 }).toArray();
 }
 
+async function getUnitProjectCompletions(zone, circle, unit) {
+  const database = db.getDb();
+  const query = {
+    zone: normalizeString(zone),
+    circle: normalizeString(circle),
+    unit: normalizeString(unit),
+  };
+  return database.collection(collections.PROJECT_STATUS_COLLECTION).find(query).toArray();
+}
+
+async function setUnitProjectCompletion(projectId, zone, circle, unit, completed) {
+  const database = db.getDb();
+  const projectObjectId = typeof projectId === 'string' ? new ObjectId(projectId) : projectId;
+  const query = {
+    projectId: projectObjectId,
+    zone: normalizeString(zone),
+    circle: normalizeString(circle),
+    unit: normalizeString(unit),
+  };
+  const update = {
+    $set: {
+      completed: Boolean(completed),
+      updatedAt: new Date(),
+    },
+  };
+  const options = { upsert: true };
+  const result = await database.collection(collections.PROJECT_STATUS_COLLECTION).updateOne(query, update, options);
+  return result.modifiedCount > 0 || result.upsertedCount > 0;
+}
+
 async function updateProject(id, projectData) {
   const database = db.getDb();
   const projectId = typeof id === 'string' ? new ObjectId(id) : id;
@@ -91,6 +121,7 @@ async function getProjectProgressSummary() {
           _id: { zone: '$zone', circle: '$circle', unit: '$unit' },
           totalProjects: { $sum: 1 },
           completedProjects: { $sum: { $cond: ['$completed', 1, 0] } },
+          projects: { $push: '$name' },
         },
       },
       {
@@ -101,6 +132,7 @@ async function getProjectProgressSummary() {
           unit: '$_id.unit',
           totalProjects: 1,
           completedProjects: 1,
+          projects: 1,
           completionRate: {
             $cond: [
               { $eq: ['$totalProjects', 0] },
@@ -116,14 +148,78 @@ async function getProjectProgressSummary() {
   return progress;
 }
 
+async function getProjectMonitoring() {
+  const database = db.getDb();
+  // load all projects
+  const projects = await database.collection(collections.PROJECT_COLLECTION).find().toArray();
+  // load all location units
+  const locationsDoc = await database.collection(collections.LOCATION_COLLECTION).findOne({ type: 'default' });
+  const units = [];
+  if (locationsDoc && Array.isArray(locationsDoc.zones)) {
+    locationsDoc.zones.forEach((z) => {
+      const zname = z.name;
+      (z.circles || []).forEach((c) => {
+        const cname = c.name;
+        (c.units || []).forEach((u) => {
+          units.push({ zone: zname, circle: cname, unit: u });
+        });
+      });
+    });
+  }
+
+  // load all project status entries
+  const statuses = await database.collection(collections.PROJECT_STATUS_COLLECTION).find().toArray();
+
+  // map statuses by projectId and location key
+  const statusMap = new Map();
+  statuses.forEach((s) => {
+    const pid = s.projectId ? s.projectId.toString() : '';
+    const key = `${pid}||${s.zone}||${s.circle}||${s.unit}`;
+    statusMap.set(key, Boolean(s.completed));
+  });
+
+  const monitoring = projects.map((p) => {
+    const pid = p._id.toString();
+    const completeUnits = [];
+    const pendingUnits = [];
+    const notCompleteUnits = [];
+
+    units.forEach((loc) => {
+      const key = `${pid}||${loc.zone}||${loc.circle}||${loc.unit}`;
+      if (statusMap.has(key)) {
+        if (statusMap.get(key)) {
+          completeUnits.push(`${loc.zone} > ${loc.circle} > ${loc.unit}`);
+        } else {
+          pendingUnits.push(`${loc.zone} > ${loc.circle} > ${loc.unit}`);
+        }
+      } else {
+        notCompleteUnits.push(`${loc.zone} > ${loc.circle} > ${loc.unit}`);
+      }
+    });
+
+    return {
+      projectId: pid,
+      name: p.name,
+      completeUnits,
+      pendingUnits,
+      notCompleteUnits,
+    };
+  });
+
+  return monitoring;
+}
+
 module.exports = {
   createProject,
   getProjectById,
   getAllProjects,
   getProjectsBySelection,
+  getUnitProjectCompletions,
+  setUnitProjectCompletion,
   updateProject,
   deleteProject,
   setProjectCompletion,
   getProjectCount,
   getProjectProgressSummary,
+  getProjectMonitoring,
 };
