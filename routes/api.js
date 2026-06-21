@@ -4,7 +4,7 @@ const auth = require('../middlewares/auth');
 const locationHelper = require('../helpers/location-helper');
 const projectHelper = require('../helpers/project-helper');
 
-router.get('/locations', auth.requireLogin, async (req, res, next) => {
+router.get('/locations', auth.requireApiLogin, async (req, res, next) => {
   try {
     const locations = await locationHelper.getLocations();
     return res.json({ success: true, locations });
@@ -13,7 +13,7 @@ router.get('/locations', auth.requireLogin, async (req, res, next) => {
   }
 });
 
-router.get('/admin/summary', auth.requireLogin, auth.requireRole('Admin'), async (req, res, next) => {
+router.get('/admin/summary', auth.requireApiLogin, auth.requireApiRole('Admin'), async (req, res, next) => {
   try {
     const locations = await locationHelper.getLocations();
     const totalProjects = await projectHelper.getProjectCount();
@@ -35,7 +35,7 @@ router.get('/admin/summary', auth.requireLogin, auth.requireRole('Admin'), async
   }
 });
 
-router.get('/admin/projects', auth.requireLogin, auth.requireRole('Admin'), async (req, res, next) => {
+router.get('/admin/projects', auth.requireApiLogin, auth.requireApiRole('Admin'), async (req, res, next) => {
   try {
     const projects = await projectHelper.getAllProjects();
     return res.json({ success: true, projects });
@@ -44,7 +44,7 @@ router.get('/admin/projects', auth.requireLogin, auth.requireRole('Admin'), asyn
   }
 });
 
-router.post('/admin/projects', auth.requireLogin, auth.requireRole('Admin'), async (req, res, next) => {
+router.post('/admin/projects', auth.requireApiLogin, auth.requireApiRole('Admin'), async (req, res, next) => {
   try {
     const { name, description } = req.body;
     if (!name) {
@@ -58,7 +58,7 @@ router.post('/admin/projects', auth.requireLogin, auth.requireRole('Admin'), asy
   }
 });
 
-router.put('/admin/projects/:id', auth.requireLogin, auth.requireRole('Admin'), async (req, res, next) => {
+router.put('/admin/projects/:id', auth.requireApiLogin, auth.requireApiRole('Admin'), async (req, res, next) => {
   try {
     const updated = await projectHelper.updateProject(req.params.id, req.body);
     if (!updated) {
@@ -70,7 +70,7 @@ router.put('/admin/projects/:id', auth.requireLogin, auth.requireRole('Admin'), 
   }
 });
 
-router.delete('/admin/projects/:id', auth.requireLogin, auth.requireRole('Admin'), async (req, res, next) => {
+router.delete('/admin/projects/:id', auth.requireApiLogin, auth.requireApiRole('Admin'), async (req, res, next) => {
   try {
     const deleted = await projectHelper.deleteProject(req.params.id);
     if (!deleted) {
@@ -82,7 +82,7 @@ router.delete('/admin/projects/:id', auth.requireLogin, auth.requireRole('Admin'
   }
 });
 
-router.get('/user/projects', auth.requireLogin, async (req, res, next) => {
+router.get('/user/projects', auth.requireApiLogin, async (req, res, next) => {
   try {
     const { zone, circle, unit } = req.query;
     const projects = await projectHelper.getAllProjects();
@@ -101,7 +101,7 @@ router.get('/user/projects', auth.requireLogin, async (req, res, next) => {
   }
 });
 
-router.put('/projects/:id/completion', auth.requireLogin, async (req, res, next) => {
+router.put('/projects/:id/completion', auth.requireApiLogin, async (req, res, next) => {
   try {
     const completed = req.body.completed === true || req.body.completed === 'true';
     const { zone, circle, unit } = req.body;

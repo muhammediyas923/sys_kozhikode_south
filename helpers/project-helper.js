@@ -181,28 +181,21 @@ async function getProjectMonitoring() {
   const monitoring = projects.map((p) => {
     const pid = p._id.toString();
     const completeUnits = [];
-    const pendingUnits = [];
-    const notCompleteUnits = [];
 
     units.forEach((loc) => {
       const key = `${pid}||${loc.zone}||${loc.circle}||${loc.unit}`;
-      if (statusMap.has(key)) {
-        if (statusMap.get(key)) {
-          completeUnits.push(`${loc.zone} > ${loc.circle} > ${loc.unit}`);
-        } else {
-          pendingUnits.push(`${loc.zone} > ${loc.circle} > ${loc.unit}`);
-        }
-      } else {
-        notCompleteUnits.push(`${loc.zone} > ${loc.circle} > ${loc.unit}`);
+      if (statusMap.has(key) && statusMap.get(key)) {
+        completeUnits.push(`${loc.zone} > ${loc.circle} > ${loc.unit}`);
       }
     });
+
+    const notCompleteCount = units.length - completeUnits.length;
 
     return {
       projectId: pid,
       name: p.name,
       completeUnits,
-      pendingUnits,
-      notCompleteUnits,
+      notCompleteCount,
     };
   });
 

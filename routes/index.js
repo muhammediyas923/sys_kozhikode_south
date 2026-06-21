@@ -14,7 +14,7 @@ router.get('/login', function(req, res) {
   }
   const loginError = req.session.loginError;
   delete req.session.loginError;
-  res.render('login', { loginError });
+  res.render('login', { loginError, layout: false });
 });
 
 router.post('/login', async function(req, res, next) {
@@ -45,7 +45,7 @@ router.get('/admin-dashboard', auth.requireLogin, auth.requireRole('Admin'), fun
     sameSite: 'Lax',
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
   });
-  res.render('admin/admin-dashboard', { user: req.session.user });
+  res.render('admin/admin-dashboard', { user: req.session.user, layout: false });
 });
 
 router.get('/user-dashboard', auth.requireLogin, auth.requireRole('User'), function(req, res) {
@@ -55,7 +55,7 @@ router.get('/user-dashboard', auth.requireLogin, auth.requireRole('User'), funct
     sameSite: 'Lax',
     maxAge: 24 * 60 * 60 * 1000,
   });
-  res.render('user/user-dashboard', { user: req.session.user });
+  res.render('user/user-dashboard', { user: req.session.user, layout: false });
 });
 
 router.get('/team', function(req, res) {

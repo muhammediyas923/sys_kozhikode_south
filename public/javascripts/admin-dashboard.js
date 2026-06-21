@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="small text-muted">${listHtml(p.completeUnits, 'complete')}</div>
               </div>
               <div class="col-md-6 col-12 mb-2">
-                <h6 class="mb-1">Not Complete <span class="badge bg-secondary ms-1">${p.notCompleteUnits.length}</span></h6>
+                <h6 class="mb-1">Not Complete <span class="badge bg-secondary ms-1">${p.notCompleteCount}</span></h6>
               </div>
             </div>
           </div>
