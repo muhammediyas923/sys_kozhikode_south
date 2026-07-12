@@ -9,13 +9,14 @@ var debug = require('debug')('sys-kozhikode-south:server');
 var http = require('http');
 var db = require('../config/connection');
 var userHelper = require('../helpers/user-helper');
-var locationHelper = require('../helpers/location-helper');
+var zoneHelper = require('../helpers/zone-helper');
+var circleHelper = require('../helpers/circle-helper');
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '2000');
+var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
 
 /**
@@ -28,8 +29,9 @@ var server = http.createServer(app);
  * Listen on provided port, on all network interfaces.
  */
 db.connect()
-  .then(() => userHelper.seedDefaultAccounts())
-  .then(() => locationHelper.seedDefaultLocations())
+  .then(() => userHelper.seedSuperAdmin())
+  .then(() => zoneHelper.seedDefaultZones())
+  .then(() => circleHelper.seedDefaultCircles())
   .then(() => {
     server.listen(port);
   })

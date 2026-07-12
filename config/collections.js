@@ -1,6 +1,8 @@
 module.exports = {
-  USER_COLLECTION: 'user',
-  PROJECT_COLLECTION: 'projects',
-  LOCATION_COLLECTION: 'locations',
-  PROJECT_STATUS_COLLECTION: 'project_status',
+  USERS_COLLECTION: 'users',
+  ZONES_COLLECTION: 'zones',
+  CIRCLES_COLLECTION: 'circles',
+  PROGRAMS_COLLECTION: 'programs',
+  PROGRAM_COMPLETIONS_COLLECTION: 'program_completions',
+  NOTIFICATIONS_COLLECTION: 'notifications',
 };

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Users | SYS Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/stylesheets/variables.css">
+  <link rel="stylesheet" href="/stylesheets/dashboard.css">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="dashboard-body">
+  <div class="ds-sidebar-overlay" id="sidebar-overlay"></div>
+  <aside class="ds-sidebar" id="sidebar">
+    <div class="ds-sidebar-brand">
+      <img src="/images/Gemini_Generated_Image_41luhh41luhh41lu-removebg-preview.png" alt="SYS" class="ds-sidebar-logo">
+      <div>
+        <div class="ds-sidebar-title">SYS Admin</div>
+        <div class="ds-sidebar-subtitle">Kozhikode South</div>
+      </div>
+    </div>
+    <nav class="ds-sidebar-nav">
+      <div class="ds-nav-section-title">Overview</div>
+      <a href="/super-admin" class="ds-nav-link"><i class="ph ph-squares-four"></i> Dashboard</a>
+      <div class="ds-nav-section-title">Management</div>
+      <a href="/super-admin/users" class="ds-nav-link active"><i class="ph ph-users"></i> Unit Users</a>
+      <a href="/super-admin/programs" class="ds-nav-link"><i class="ph ph-clipboard-text"></i> Programs</a>
+      <div class="ds-nav-section-title">Analytics</div>
+      <a href="/super-admin/reports" class="ds-nav-link"><i class="ph ph-chart-bar"></i> Reports</a>
+    </nav>
+    <div class="ds-sidebar-footer">
+      <div class="ds-user-widget">
+        <div class="ds-user-avatar">SA</div>
+        <div class="ds-user-info">
+          <div class="ds-user-name">{{user.unitName}}</div>
+          <div class="ds-user-role">Super Admin</div>
+        </div>
+        <a href="/logout" class="ds-logout-btn" title="Logout"><i class="ph ph-sign-out"></i></a>
+      </div>
+    </div>
+  </aside>
+
+  <div class="ds-main">
+    <header class="ds-topbar">
+      <button class="ds-topbar-menu-btn" id="sidebar-toggle"><i class="ph ph-list"></i></button>
+      <div class="ds-topbar-title">Unit Users</div>
+    </header>
+
+    <main class="ds-content">
+      <div class="ds-page-header">
+        <h1>User Management</h1>
+        <p>Create, edit, activate/deactivate and reset passwords for unit users.</p>
+      </div>
+
+      <!-- Filters -->
+      <div class="ds-filter-bar">
+        <div class="ds-search-box" style="max-width:220px;">
+          <i class="ph ph-magnifying-glass"></i>
+          <input type="text" placeholder="Search unit / username..." id="user-search" style="background:white;">
+        </div>
+        <select class="ds-form-control ds-form-select" style="max-width:180px;" id="filter-zone">
+          <option value="">All Zones</option>
+        </select>
+        <select class="ds-form-control ds-form-select" style="max-width:180px;" id="filter-circle">
+          <option value="">All Circles</option>
+        </select>
+        <select class="ds-form-control ds-form-select" style="max-width:150px;" id="filter-status">
+          <option value="">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+        <button class="ds-btn ds-btn-outline ds-btn-sm" id="filter-btn"><i class="ph ph-funnel"></i> Filter</button>
+        <button class="ds-btn ds-btn-primary ms-auto" id="add-user-btn"><i class="ph ph-plus"></i> Add User</button>
+      </div>
+
+      <div class="ds-card">
+        <div class="ds-card-header">
+          <h3 class="ds-card-title"><i class="ph ph-users"></i> Users <span class="ds-badge ds-badge-primary ms-2" id="user-count-badge">0</span></h3>
+        </div>
+        <div class="ds-card-body p-0">
+          <div class="ds-table-wrapper">
+            <table class="ds-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Unit Name</th>
+                  <th>Username</th>
+                  <th>Zone</th>
+                  <th>Circle</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <tr><td colspan="8"><div class="ds-loading-overlay"><div class="ds-spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- User Modal -->
+  <div class="ds-modal-backdrop" id="user-modal">
+    <div class="ds-modal" style="max-width:640px;">
+      <div class="ds-modal-header">
+        <h4 class="ds-modal-title" id="user-modal-title">Add Unit User</h4>
+        <button class="ds-modal-close" id="user-modal-close"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="ds-modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="ds-form-group">
+              <label class="ds-form-label" for="user-unitname">Unit Name <span class="text-danger">*</span></label>
+              <input type="text" class="ds-form-control" id="user-unitname" placeholder="e.g. Unit 42">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="ds-form-group">
+              <label class="ds-form-label" for="user-username">Username <span class="text-danger">*</span></label>
+              <input type="text" class="ds-form-control" id="user-username" placeholder="login username">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="ds-form-group">
+              <label class="ds-form-label" for="user-zone">Zone <span class="text-danger">*</span></label>
+              <select class="ds-form-control ds-form-select" id="user-zone">
+                <option value="">Select zone...</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="ds-form-group">
+              <label class="ds-form-label" for="user-circle">Circle <span class="text-danger">*</span></label>
+              <select class="ds-form-control ds-form-select" id="user-circle">
+                <option value="">Select circle...</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-12" id="password-field-group">
+            <div class="ds-form-group">
+              <label class="ds-form-label" for="user-password">Password <span class="text-danger" id="pw-required">*</span></label>
+              <input type="text" class="ds-form-control" id="user-password" placeholder="Set password">
+              <small class="text-muted" id="pw-hint"></small>
+            </div>
+          </div>
+        </div>
+        <div id="user-modal-error" class="text-danger small mt-1 d-none"></div>
+      </div>
+      <div class="ds-modal-footer">
+        <button class="ds-btn ds-btn-outline" id="user-modal-cancel">Cancel</button>
+        <button class="ds-btn ds-btn-primary" id="user-modal-save">
+          <i class="ph ph-floppy-disk"></i> Save User
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Password Modal -->
+  <div class="ds-modal-backdrop" id="reset-pw-modal">
+    <div class="ds-modal" style="max-width:400px;">
+      <div class="ds-modal-header">
+        <h4 class="ds-modal-title">Reset Password</h4>
+        <button class="ds-modal-close" id="reset-pw-close"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="ds-modal-body">
+        <p class="text-muted mb-3">Set a new password for <strong id="reset-pw-username"></strong>.</p>
+        <div class="ds-form-group">
+          <label class="ds-form-label" for="new-pw">New Password</label>
+          <input type="text" class="ds-form-control" id="new-pw" placeholder="Enter new password">
+        </div>
+      </div>
+      <div class="ds-modal-footer">
+        <button class="ds-btn ds-btn-outline" id="reset-pw-cancel">Cancel</button>
+        <button class="ds-btn ds-btn-warning" id="reset-pw-confirm"><i class="ph ph-key"></i> Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="ds-modal-backdrop" id="delete-modal">
+    <div class="ds-modal" style="max-width:400px;">
+      <div class="ds-modal-header">
+        <h4 class="ds-modal-title">Delete User</h4>
+        <button class="ds-modal-close" id="delete-modal-close"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="ds-modal-body">
+        <p>Delete user <strong id="delete-user-name"></strong>? This cannot be undone.</p>
+      </div>
+      <div class="ds-modal-footer">
+        <button class="ds-btn ds-btn-outline" id="delete-cancel">Cancel</button>
+        <button class="ds-btn ds-btn-danger" id="delete-confirm"><i class="ph ph-trash"></i> Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ds-toast-container" id="toast-container"></div>
+  <script src="/javascripts/notifications.js"></script>
+  <script src="/javascripts/super-admin-users.js"></script>
+</body>
+</html>

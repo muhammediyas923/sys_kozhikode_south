@@ -4,15 +4,19 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.9rem 1.35rem; /* larger, premium padding */
-  border-radius: 0.6rem; /* modern rounded corners */
+  padding: 0.9rem 1.35rem;
+  /* larger, premium padding */
+  border-radius: 0.6rem;
+  /* modern rounded corners */
   font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
   transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
   border: 1px solid transparent;
-  gap: 0.75rem; /* consistent icon spacing */
-  min-height: 48px; /* consistent height */
+  gap: 0.75rem;
+  /* consistent icon spacing */
+  min-height: 48px;
+  /* consistent height */
 }
 
 .btn-primary {
@@ -48,8 +52,8 @@
   /* secondary: lighter, elegant */
   background-color: var(--color-white);
   color: var(--color-primary-dark);
-  border: 1px solid rgba(15,61,46,0.08);
-  box-shadow: 0 4px 12px rgba(15,61,46,0.04);
+  border: 1px solid rgba(15, 61, 46, 0.08);
+  box-shadow: 0 4px 12px rgba(15, 61, 46, 0.04);
 }
 
 .btn-white:hover {
@@ -61,7 +65,7 @@
 /* Primary button hover/active */
 .btn-primary:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgba(15,61,46,0.16);
+  box-shadow: 0 12px 30px rgba(15, 61, 46, 0.16);
   filter: brightness(1.02);
 }
 
@@ -71,34 +75,36 @@
 
 /* Secondary button hover state should be subtle */
 .btn-white:hover {
-  background-color: rgba(15,61,46,0.06);
+  background-color: rgba(15, 61, 46, 0.06);
   color: var(--color-primary-dark);
   transform: translateY(-2px);
 }
 
 /* Glassmorphism style specifically for hero secondary button */
 .hero-buttons .btn-white {
-  background-color: rgba(255,255,255,0.12);
-  color: rgba(255,255,255,0.95);
-  border: 1px solid rgba(255,255,255,0.18);
+  background-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 6px 20px rgba(8, 30, 23, 0.12);
-  border-radius: 16px; /* between 14-18px */
+  border-radius: 16px;
+  /* between 14-18px */
   padding: 0.9rem 1.25rem;
   min-height: 48px;
   transition: all 0.28s ease;
 }
 
 .hero-buttons .btn-white:hover {
-  background-color: rgba(255,255,255,0.18);
+  background-color: rgba(255, 255, 255, 0.18);
   box-shadow: 0 12px 32px rgba(8, 30, 23, 0.18);
   transform: translateY(-3px);
-  color: rgba(255,255,255,1);
+  color: rgba(255, 255, 255, 1);
 }
 
 /* Ensure icon spacing and vertical alignment remain consistent with primary */
-.hero-buttons .btn-white i, .hero-buttons .btn-white svg {
+.hero-buttons .btn-white i,
+.hero-buttons .btn-white svg {
   margin-left: 0.45rem;
   margin-right: -0.15rem;
 }
@@ -184,17 +190,22 @@
 /* Navbar logo image sizing */
 .navbar-logo {
   display: inline-block;
-  height: 36px; /* mobile-friendly */
+  height: 36px;
+  /* mobile-friendly */
   width: auto;
   object-fit: contain;
 }
 
 @media (min-width: 768px) {
-  .navbar-logo { height: 44px; }
+  .navbar-logo {
+    height: 44px;
+  }
 }
 
 @media (min-width: 1200px) {
-  .navbar-logo { height: 56px; }
+  .navbar-logo {
+    height: 56px;
+  }
 }
 
 .nav-links {
@@ -212,13 +223,14 @@
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    white-space: nowrap; /* prevent wrapping */
+    white-space: nowrap;
+    /* prevent wrapping */
   }
 }
 
 /* Increase spacing between center navbar items on larger viewports */
 /* apply margin between adjacent nav items instead of gap */
-.navbar-nav.nav-links .nav-item + .nav-item {
+.navbar-nav.nav-links .nav-item+.nav-item {
   /* balanced spacing between links */
   margin-left: var(--spacing-lg);
 }
@@ -228,7 +240,8 @@
     /* slightly increase horizontal breathing room on larger viewports */
     padding-inline: var(--spacing-xl);
   }
-  .navbar-nav.nav-links .nav-item + .nav-item {
+
+  .navbar-nav.nav-links .nav-item+.nav-item {
     margin-left: var(--spacing-xl);
   }
 }
@@ -288,6 +301,7 @@
 }
 
 @media (min-width: 992px) {
+
   #navbar .container,
   #navbar .container-fluid {
     padding-inline: var(--spacing-xl);
@@ -295,6 +309,7 @@
 }
 
 @media (min-width: 1200px) {
+
   #navbar .container,
   #navbar .container-fluid {
     padding-inline: var(--spacing-2xl);
@@ -452,6 +467,7 @@
 }
 
 @media (max-width: 991px) {
+
   .admin-dashboard .row.g-4,
   .user-dashboard .row.g-4 {
     gap: 1rem;
@@ -469,6 +485,7 @@
 }
 
 @media (max-width: 767px) {
+
   .admin-dashboard .navbar,
   .user-dashboard .navbar {
     padding: 0.75rem 1rem;
@@ -500,7 +517,7 @@
       padding: 1.25rem;
     }
 
-    .admin-dashboard .row.g-4 > .col-12 {
+    .admin-dashboard .row.g-4>.col-12 {
       flex: 0 0 100%;
       max-width: 100%;
     }
@@ -571,14 +588,16 @@
 
 .hero-buttons {
   display: flex;
-  gap: calc(var(--spacing-md) * 1.5); /* more space between primary and secondary */
+  gap: calc(var(--spacing-md) * 1.5);
+  /* more space between primary and secondary */
   margin-top: calc(var(--spacing-lg));
   flex-wrap: wrap;
   align-items: center;
 }
 
 /* Ensure icons inside buttons are spaced correctly and text aligns */
-.btn i, .btn svg {
+.btn i,
+.btn svg {
   display: inline-flex;
   margin-left: 0.35rem;
   margin-right: -0.15rem;
@@ -591,11 +610,13 @@
     gap: var(--spacing-md);
     align-items: stretch;
   }
+
   .hero-buttons .btn {
     width: 100%;
     justify-content: center;
   }
-  .hero-buttons .btn + .btn {
+
+  .hero-buttons .btn+.btn {
     margin-top: var(--spacing-sm);
   }
 }
@@ -733,13 +754,16 @@
   flex-direction: column;
   gap: 0.75rem;
 }
+
 .program-monitoring-card .card-body {
   padding: 1rem;
 }
+
 .program-monitoring-card h5 {
   font-size: 1.05rem;
   font-weight: 700;
 }
+
 .program-monitoring-card .small div {
   white-space: nowrap;
   overflow: hidden;
@@ -749,13 +773,24 @@
 .monitor-item {
   padding: 0.125rem 0;
 }
-.monitor-preview { }
-.monitor-full { max-height: 320px; overflow: auto; }
-.more-toggle { padding: 0; }
-.program-monitoring-card .badge { font-size: 0.8rem; }
+
+.monitor-preview {}
+
+.monitor-full {
+  max-height: 320px;
+  overflow: auto;
+}
+
+.more-toggle {
+  padding: 0;
+}
+
+.program-monitoring-card .badge {
+  font-size: 0.8rem;
+}
 
 @media (max-width: 767px) {
-  .program-monitoring-card .row > div {
+  .program-monitoring-card .row>div {
     padding-left: 0;
     padding-right: 0;
   }
@@ -794,18 +829,21 @@
 .razorpay-wrapper {
   width: 100%;
 }
+
 .razorpay-wrapper .razorpay-payment-button {
   display: inline-block;
   box-sizing: border-box;
 }
 
 @media (max-width: 576px) {
+
   .razorpay-wrapper .razorpay-payment-button,
   .razorpay-wrapper .razorpay-payment-button * {
     width: 100% !important;
     display: block !important;
     box-sizing: border-box !important;
   }
+
   .razorpay-wrapper .razorpay-payment-button {
     padding: 0.85rem 1rem !important;
     font-size: 1rem !important;
@@ -1028,4 +1066,254 @@
 .footer-bottom-links {
   display: flex;
   gap: var(--spacing-md);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COMPREHENSIVE MOBILE RESPONSIVENESS
+   Breakpoints: 768px (tablet), 576px (mobile), 400px (small)
+═══════════════════════════════════════════════════════════ */
+
+/* ── Container padding on mobile ── */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 var(--spacing-md);
+  }
+
+  .section-padding {
+    padding: var(--spacing-2xl) 0;
+  }
+}
+
+/* ── Navbar mobile ── */
+@media (max-width: 991px) {
+  #navbar .container-fluid {
+    padding-inline: var(--spacing-sm);
+  }
+
+  /* Collapsed menu full-width items */
+  .navbar-collapse .navbar-nav {
+    padding: var(--spacing-sm) 0;
+  }
+
+  .navbar-collapse .nav-link {
+    padding: 0.65rem 1rem !important;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+
+  .navbar-collapse .nav-link:hover {
+    background: rgba(20, 83, 62, 0.06);
+    transform: none;
+  }
+
+  /* Login buttons stack vertically inside collapsed menu */
+  .navbar-collapse .d-flex {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: var(--spacing-sm) 0;
+  }
+
+  .navbar-collapse .btn,
+  .navbar-collapse .login-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  /* Remove absolute centering on mobile */
+  .nav-center {
+    position: static !important;
+    transform: none !important;
+    left: auto !important;
+    top: auto !important;
+    white-space: normal !important;
+  }
+}
+
+/* ── Hero section mobile ── */
+@media (max-width: 768px) {
+  .hero {
+    min-height: 100svh;
+    background-position: center top;
+  }
+
+  .hero-content {
+    padding-bottom: calc(var(--spacing-4xl) + 40px);
+    padding-top: var(--spacing-xl);
+    max-width: 100%;
+  }
+
+  .hero-content h1 {
+    font-size: clamp(1.8rem, 8vw, 2.8rem);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .hero-content p {
+    font-size: 0.95rem;
+
+    br {
+      display: none;
+    }
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    align-items: stretch;
+  }
+
+  .hero-buttons .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Stats bar on mobile: scroll horizontally if needed */
+  .stats-bar {
+    position: relative;
+    bottom: auto;
+  }
+
+  .stats-bar .container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .stats-bar .row {
+    flex-wrap: nowrap;
+    min-width: max-content;
+  }
+
+  .stats-bar .col {
+    min-width: 140px;
+  }
+}
+
+@media (max-width: 576px) {
+  .stats-bar .col {
+    min-width: 120px;
+  }
+
+  .stat-item {
+    gap: var(--spacing-sm);
+  }
+
+  .stat-text h4 {
+    font-size: 1rem;
+  }
+
+  .stat-text p {
+    font-size: 0.75rem;
+  }
+}
+
+/* ── Initiative cards on mobile ── */
+@media (max-width: 639px) {
+  .initiative-card {
+    flex-direction: column !important;
+  }
+
+  .initiative-image {
+    min-height: 160px;
+    order: -1;
+  }
+
+  .initiative-content {
+    padding: var(--spacing-md);
+  }
+}
+
+/* ── About section features grid ── */
+@media (max-width: 576px) {
+  .about-features .card {
+    padding: var(--spacing-md);
+  }
+}
+
+/* ── News & Events on mobile ── */
+@media (max-width: 576px) {
+  .news-thumb {
+    width: 60px;
+    height: 48px;
+  }
+
+  .news-title {
+    font-size: 0.85rem;
+  }
+
+  .event-date-block {
+    min-width: 48px;
+  }
+
+  .event-day {
+    font-size: 1.2rem;
+  }
+}
+
+/* ── Impact section ── */
+@media (max-width: 576px) {
+  #impact .stat-item {
+    gap: var(--spacing-sm);
+  }
+
+  #impact h4.fs-2 {
+    font-size: 1.5rem !important;
+  }
+
+  #impact p {
+    font-size: 0.78rem;
+  }
+}
+
+/* ── Footer responsive ── */
+@media (max-width: 768px) {
+  .footer {
+    padding: var(--spacing-2xl) 0 var(--spacing-lg);
+  }
+
+  .footer-col {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-2xl);
+  }
+
+  .footer-bottom-links {
+    justify-content: center;
+  }
+}
+
+/* ── Typography scaling on small screens ── */
+@media (max-width: 576px) {
+  h1 {
+    font-size: clamp(1.75rem, 7vw, 2.4rem);
+  }
+
+  h2 {
+    font-size: clamp(1.4rem, 5.5vw, 2rem);
+  }
+
+  h3 {
+    font-size: 1.2rem;
+  }
+
+  .overline {
+    font-size: 0.75rem;
+  }
+}
+
+/* ── Touch targets: ensure buttons/links are at least 44px ── */
+@media (max-width: 768px) {
+
+  .btn,
+  .nav-link,
+  .social-links a,
+  .news-item,
+  .event-item {
+    min-height: 44px;
+  }
 }

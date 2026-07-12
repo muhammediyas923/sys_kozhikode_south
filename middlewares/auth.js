@@ -8,7 +8,7 @@ module.exports = {
 
   requireRole: function (role) {
     return function (req, res, next) {
-      if (req.session?.user?.Role === role) {
+      if (req.session?.user?.role === role) {
         return next();
       }
       res.status(403).render('error', { message: 'Access denied' });
@@ -24,7 +24,7 @@ module.exports = {
 
   requireApiRole: function (role) {
     return function (req, res, next) {
-      if (req.session?.user?.Role === role) {
+      if (req.session?.user?.role === role) {
         return next();
       }
       return res.status(403).json({ success: false, message: 'Access denied.' });
