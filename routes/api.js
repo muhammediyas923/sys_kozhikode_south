@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
+const { ObjectId } = require('mongodb');
 const auth = require('../middlewares/auth');
 const upload = require('../middlewares/upload');
+const completionUpload = require('../middlewares/completion-upload');
 const zoneHelper = require('../helpers/zone-helper');
 const circleHelper = require('../helpers/circle-helper');
 const userHelper = require('../helpers/user-helper');
 const programHelper = require('../helpers/program-helper');
-const notificationHelper = require('../helpers/notification-helper');
+const notifHelper = require('../helpers/notification-helper');
 const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
 
@@ -49,35 +51,7 @@ router.get('/units', async (req, res, next) => {
   } catch (error) { return next(error); }
 });
 
-/* ─── NOTIFICATIONS ──────────────────────────────────────────────────────── */
-
-router.get('/notifications', auth.requireApiLogin, async (req, res, next) => {
-  try {
-    const user = req.session.user;
-    let notifications;
-    if (user.role === 'SuperAdmin') {
-      notifications = await notificationHelper.getNotificationsForAdmin();
-    } else {
-      notifications = await notificationHelper.getNotificationsForUser(user._id);
-    }
-    const unreadCount = await notificationHelper.getUnreadCount(user._id);
-    return res.json({ success: true, notifications, unreadCount });
-  } catch (error) { return next(error); }
-});
-
-router.put('/notifications/:id/read', auth.requireApiLogin, async (req, res, next) => {
-  try {
-    await notificationHelper.markAsRead(req.params.id);
-    return res.json({ success: true });
-  } catch (error) { return next(error); }
-});
-
-router.put('/notifications/read-all', auth.requireApiLogin, async (req, res, next) => {
-  try {
-    await notificationHelper.markAllAsRead(req.session.user._id);
-    return res.json({ success: true });
-  } catch (error) { return next(error); }
-});
+/* Notifications API removed for user dashboard (endpoints disabled). */
 
 /* ─── SUPER ADMIN: ANALYTICS ─────────────────────────────────────────────── */
 
@@ -225,12 +199,69 @@ router.post('/admin/users/:id/reset-password', auth.requireApiLogin, auth.requir
   } catch (error) { return next(error); }
 });
 
+router.put('/admin/profile/username', auth.requireApiLogin, auth.requireApiRole('SuperAdmin'), async (req, res, next) => {
+  try {
+    const { username } = req.body;
+    const userId = req.session.user._id;
+
+    // Validate inputs
+    if (!username || !String(username).trim()) {
+      return res.status(400).json({ success: false, message: 'Username is required.' });
+    }
+
+    if (!userId || !ObjectId.isValid(userId)) {
+      return res.status(401).json({ success: false, message: 'Invalid user session.' });
+    }
+
+    const taken = await userHelper.isUsernameTaken(username, userId);
+    if (taken) {
+      return res.status(409).json({ success: false, message: 'Username already exists.' });
+    }
+    await userHelper.updateUsername(userId, username);
+    req.session.user.username = username;
+    return res.json({ success: true });
+  } catch (error) { return next(error); }
+});
+
+router.put('/admin/profile/password', auth.requireApiLogin, auth.requireApiRole('SuperAdmin'), async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.session.user._id;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Current and new passwords are required.' });
+    }
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ success: false, message: 'New password must be different from the current password.' });
+    }
+    if (!userId || !ObjectId.isValid(userId)) {
+      return res.status(401).json({ success: false, message: 'Invalid user session.' });
+    }
+
+    const valid = await userHelper.verifyPassword(userId, currentPassword);
+    if (!valid) {
+      return res.status(400).json({ success: false, message: 'Current password is incorrect.' });
+    }
+    await userHelper.resetPassword(userId, newPassword);
+    return res.json({ success: true });
+  } catch (error) { return next(error); }
+});
+
 /* ─── SUPER ADMIN: PROGRAMS ──────────────────────────────────────────────── */
 
 router.get('/admin/programs', auth.requireApiLogin, auth.requireApiRole('SuperAdmin'), async (req, res, next) => {
   try {
     const programs = await programHelper.getAllPrograms();
     return res.json({ success: true, programs });
+  } catch (error) { return next(error); }
+});
+
+// Get all completions for a specific program (admin detail view)
+router.get('/admin/programs/:id/completions', auth.requireApiLogin, auth.requireApiRole('SuperAdmin'), async (req, res, next) => {
+  try {
+    const completions = await programHelper.getProgramCompletionDetails(req.params.id);
+    const program = await programHelper.getProgramById(req.params.id);
+    return res.json({ success: true, completions, program });
   } catch (error) { return next(error); }
 });
 
@@ -259,12 +290,7 @@ router.post('/admin/programs/:id/publish', auth.requireApiLogin, auth.requireApi
   try {
     await programHelper.publishProgram(req.params.id);
     const program = await programHelper.getProgramById(req.params.id);
-    // Notify all units
-    await notificationHelper.broadcastToAllUnits(
-      'program_published',
-      `New program published: "${program.title}"`,
-      { programId: req.params.id }
-    );
+    // Notification broadcast disabled for unit dashboard
     return res.json({ success: true });
   } catch (error) { return next(error); }
 });
@@ -427,22 +453,73 @@ router.put('/unit/programs/:id/complete', auth.requireApiLogin, auth.requireApiR
   try {
     const user = req.session.user;
     const { completed } = req.body;
-    const database_result = await programHelper.markCompletion(req.params.id, user._id, {
+    const database_result = await programHelper.setCompletion(req.params.id, user._id, Boolean(completed), {
       zone: user.zone,
       circle: user.circle,
       unitName: user.unitName,
       username: user.username,
     });
+    return res.json({ success: true, completed: database_result.completed });
+  } catch (error) { return next(error); }
+});
 
-    if (database_result.completed) {
-      // Notify admin
-      await notificationHelper.createNotification(
-        'superadmin',
-        'unit_completed',
-        `${user.unitName} (${user.circle}, ${user.zone}) completed a program.`,
-        { programId: req.params.id, userId: user._id }
+// Submit a structured completion with optional images and notes
+router.post('/unit/programs/:id/submit-completion',
+  auth.requireApiLogin, auth.requireApiRole('UnitUser'),
+  completionUpload.array('images', 5),
+  async (req, res, next) => {
+    try {
+      const user = req.session.user;
+      const { completionCount, completionDate, notes } = req.body;
+
+      // Build image records from uploaded files
+      const images = (req.files || []).map(f => ({
+        originalName: f.originalname,
+        filename: f.filename,
+        url: `/uploads/completions/${f.filename}`,
+      }));
+
+      const result = await programHelper.submitCompletion(
+        req.params.id,
+        user._id,
+        { zone: user.zone, circle: user.circle, unitName: user.unitName, username: user.username },
+        { completionCount, completionDate, notes, images }
       );
-    }
+
+      // Fetch program title for notification
+      const program = await programHelper.getProgramById(req.params.id);
+      const progTitle = program ? program.title : 'Unknown Program';
+      const requiredCount = program ? (program.requiredCount || 1) : 1;
+      const count = parseInt(completionCount, 10) || 1;
+
+      // Notify admin
+      try {
+        await notifHelper.createNotification(
+          'admin',
+          'unit_completed',
+          `${user.unitName} completed "${progTitle}" (${count}/${requiredCount} times).`,
+          { programId: req.params.id, userId: user._id, unitName: user.unitName }
+        );
+      } catch (notifErr) {
+        console.warn('Notification creation failed:', notifErr.message);
+      }
+
+      return res.json({ success: true, ...result });
+    } catch (error) { return next(error); }
+  }
+);
+
+// (Legacy) mark/unmark completion via simple toggle
+router.put('/unit/programs/:id/complete', auth.requireApiLogin, auth.requireApiRole('UnitUser'), async (req, res, next) => {
+  try {
+    const user = req.session.user;
+    const { completed } = req.body;
+    const database_result = await programHelper.setCompletion(req.params.id, user._id, Boolean(completed), {
+      zone: user.zone,
+      circle: user.circle,
+      unitName: user.unitName,
+      username: user.username,
+    });
     return res.json({ success: true, completed: database_result.completed });
   } catch (error) { return next(error); }
 });

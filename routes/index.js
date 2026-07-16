@@ -123,6 +123,15 @@ router.get('/super-admin/programs', auth.requireLogin, auth.requireRole('SuperAd
   });
 });
 
+router.get('/super-admin/profile', auth.requireLogin, auth.requireRole('SuperAdmin'), function (req, res) {
+  res.render('super-admin/profile', {
+    user: req.session.user,
+    layout: false,
+    pageTitle: 'Account Settings',
+    activePage: 'profile',
+  });
+});
+
 router.get('/super-admin/reports', auth.requireLogin, auth.requireRole('SuperAdmin'), function (req, res) {
   res.render('super-admin/reports', {
     user: req.session.user,

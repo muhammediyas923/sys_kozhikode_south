@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let doughnutChart = null;
   let barChart = null;
+  let analyticsRefreshTimer = null;
 
   async function loadAnalytics() {
     try {
@@ -126,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderRecentTable(completions) {
     const tbody = document.getElementById('recent-table');
     if (!completions.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No completions recorded yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No completions recorded yet.</td></tr>';
       return;
     }
     tbody.innerHTML = completions.map(c => `
@@ -135,6 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${c.zone || '—'}</td>
         <td>${c.circle || '—'}</td>
         <td>${c.programTitle || '—'}</td>
+        <td><span class="ds-badge ds-badge-success">${c.completionCount || 1}×</span></td>
+        <td><span style="max-width:140px; display:inline-block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;" title="${(c.notes || '').replace(/"/g, '&quot;')}">${c.notes ? c.notes : '<span class="text-muted">—</span>'}</span></td>
         <td>${c.completedAt ? new Date(c.completedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
       </tr>
     `).join('');
@@ -149,7 +152,24 @@ document.addEventListener('DOMContentLoaded', () => {
     loadAnalytics();
   });
 
+  function setupAutoRefresh() {
+    clearInterval(analyticsRefreshTimer);
+    analyticsRefreshTimer = setInterval(loadAnalytics, 10000); // Refresh every 10s
+    window.addEventListener('focus', () => loadAnalytics());
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') loadAnalytics();
+    });
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'sys:completion-updated') {
+        loadAnalytics();
+      }
+    });
+    window.addEventListener('sys:completion-updated', () => {
+      loadAnalytics();
+    });
+  }
+
   // Init
   loadAnalytics();
-  setInterval(loadAnalytics, 60000); // Refresh every 60s
+  setupAutoRefresh();
 });

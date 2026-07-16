@@ -43,12 +43,27 @@ app.use(function(req, res, next) {
 
 // error handler
 app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
 
-  // render the error page
-  res.status(err.status || 500);
+  // Log the error for debugging
+  console.error('Error:', {
+    status,
+    message,
+    path: req.path,
+    method: req.method,
+    stack: err.stack
+  });
+
+  // If it's an API request, return JSON
+  if (req.path.startsWith('/api')) {
+    return res.status(status).json({ success: false, message });
+  }
+
+  // Otherwise render the error page
+  res.locals.message = message;
+  res.locals.error = req.app.get('env') === 'development' ? err : {};
+  res.status(status);
   res.render('error');
 });
 

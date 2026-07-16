@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const statusBadge = p.published
         ? '<span class="ds-badge ds-badge-success">Published</span>'
         : '<span class="ds-badge ds-badge-muted">Draft</span>';
-      
+
       const attachmentsList = p.attachments && p.attachments.length
         ? p.attachments.map(att => `<a href="${att.url}" target="_blank" class="d-block text-truncate" style="max-width:120px;" title="${att.originalName}"><i class="ph ph-file"></i> ${att.originalName}</a>`).join('')
         : '<span class="text-muted">—</span>';
@@ -44,13 +44,14 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <tr>
           <td>${index + 1}</td>
-          <td><strong>${p.title}</strong></td>
+          <td><strong>${p.title}</strong>${p.requiredCount > 1 ? ` <span class="ds-badge ds-badge-primary ms-1">${p.requiredCount}×</span>` : ''}</td>
           <td><div class="text-truncate" style="max-width:180px;" title="${p.description || ''}">${p.description || '—'}</div></td>
           <td>${p.dueDate ? formatDate(p.dueDate) : '<span class="text-muted">—</span>'}</td>
           <td>${attachmentsList}</td>
           <td>${statusBadge}</td>
           <td>${formatDate(p.createdAt)}</td>
           <td>
+            <button class="ds-btn ds-btn-outline ds-btn-sm view-completions-btn" data-id="${p._id}" data-title="${p.title}" title="View user completions"><i class="ph ph-users"></i> Completions</button>
             <button class="ds-btn ds-btn-outline ds-btn-sm edit-btn" data-id="${p._id}"><i class="ph ph-pencil-simple"></i> Edit</button>
             <button class="ds-btn ds-btn-outline ds-btn-sm toggle-publish-btn" data-id="${p._id}" data-published="${p.published}">
               <i class="ph ${p.published ? 'ph-eye-closed' : 'ph-eye'}"></i> ${p.published ? 'Unpublish' : 'Publish'}
@@ -62,6 +63,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
 
     // Table actions event delegation
+    tbody.querySelectorAll('.view-completions-btn').forEach(btn => {
+      btn.addEventListener('click', () => openCompletionsModal(btn.dataset.id, btn.dataset.title));
+    });
+
     tbody.querySelectorAll('.edit-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.dataset.id;
@@ -75,10 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
               document.getElementById('prog-title').value = p.title;
               document.getElementById('prog-desc').value = p.description || '';
               document.getElementById('prog-due').value = p.dueDate ? p.dueDate.substring(0, 10) : '';
-              
+              document.getElementById('prog-required-count').value = p.requiredCount || 1;
+
               selectedFiles = [];
               renderSelectedFiles();
-              
+
               if (p.attachments && p.attachments.length) {
                 fileList.innerHTML = '<label class="ds-form-label mt-2">Current Attachments:</label>' +
                   p.attachments.map(att => `<div class="d-flex align-items-center justify-content-between p-2 border rounded mb-1 bg-light"><span><i class="ph ph-file"></i> ${att.originalName}</span></div>`).join('');
@@ -206,7 +212,9 @@ document.addEventListener('DOMContentLoaded', () => {
     formData.append('title', title);
     formData.append('description', description);
     if (dueDate) formData.append('dueDate', dueDate);
-    
+    const requiredCount = document.getElementById('prog-required-count')?.value || 1;
+    formData.append('requiredCount', requiredCount);
+
     selectedFiles.forEach(file => {
       formData.append('attachments', file);
     });
@@ -214,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const url = editingProgramId ? `/api/admin/programs/${editingProgramId}` : '/api/admin/programs';
       const method = editingProgramId ? 'PUT' : 'POST';
-      
+
       const resp = await fetch(url, {
         method,
         body: formData // Multer handles multipart upload
@@ -255,6 +263,91 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Error deleting program.', 'danger');
     }
   });
+
+  // ── Completions Modal ────────────────────────────────────────────────
+  async function openCompletionsModal(programId, programTitle) {
+    document.getElementById('completions-modal-title').innerHTML =
+      `<i class="ph ph-users"></i> Completions — ${programTitle}`;
+    document.getElementById('completions-modal-body').innerHTML =
+      '<div class="ds-loading-overlay"><div class="ds-spinner"></div></div>';
+    openModal('completions-modal');
+
+    try {
+      const resp = await fetch(`/api/admin/programs/${programId}/completions`);
+      const data = await resp.json();
+      if (!data.success) throw new Error(data.message || 'Failed to load');
+
+      const completions = data.completions || [];
+      const prog = data.program || {};
+      const requiredCount = prog.requiredCount || 1;
+
+      if (!completions.length) {
+        document.getElementById('completions-modal-body').innerHTML =
+          '<div class="ds-empty" style="padding:40px;"><i class="ph ph-users ds-empty-icon"></i><h3>No completions yet</h3><p>No users have submitted a completion for this program.</p></div>';
+        return;
+      }
+
+      document.getElementById('completions-modal-body').innerHTML = `
+        <p class="text-muted mb-3" style="font-size:0.875rem;">
+          <strong>${completions.length}</strong> user${completions.length !== 1 ? 's' : ''} completed · Required: <strong>${requiredCount}×</strong>
+        </p>
+        <div class="ds-table-wrapper" style="max-height:60vh; overflow-y:auto; border-bottom:1px solid #e2e8f0;">
+          <table class="ds-table" style="vertical-align:middle; margin-bottom:0;">
+            <thead>
+              <tr>
+                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Unit Name</th>
+                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Zone</th>
+                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Circle</th>
+                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Count</th>
+                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Progress</th>
+                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Date</th>
+                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Notes</th>
+                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Images</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${completions.map(c => {
+        const count = c.completionCount || 1;
+        const pct = Math.min(100, Math.round((count / requiredCount) * 100));
+        const images = Array.isArray(c.images) ? c.images : [];
+        return `
+                  <tr style="vertical-align:middle;">
+                    <td style="vertical-align:middle;">
+                      <strong>${c.unitName || '—'}</strong>
+                      ${c.username ? `<span class="text-muted" style="font-size:0.78rem; margin-left:4px;">(${c.username})</span>` : ''}
+                    </td>
+                    <td style="vertical-align:middle;">${c.zone || '—'}</td>
+                    <td style="vertical-align:middle;">${c.circle || '—'}</td>
+                    <td style="vertical-align:middle;"><span class="ds-badge ds-badge-success">${count}×</span></td>
+                    <td style="vertical-align:middle;">
+                      <div style="display:flex; align-items:center; gap:8px;">
+                        <div style="flex:1; height:8px; background:#e2e8f0; border-radius:999px; min-width:60px;">
+                          <div style="height:100%; width:${pct}%; background:#14533e; border-radius:999px;"></div>
+                        </div>
+                        <span style="font-size:0.78rem; font-weight:600; color:#14533e; white-space:nowrap;">${pct}%</span>
+                      </div>
+                    </td>
+                    <td style="vertical-align:middle; white-space:nowrap;">${c.completedAt ? new Date(c.completedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                    <td style="vertical-align:middle;"><span style="max-width:150px; display:inline-block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${(c.notes || '').replace(/"/g, '&quot;')}">${c.notes || '<span class="text-muted">—</span>'}</span></td>
+                    <td style="vertical-align:middle;">
+                      ${images.length
+            ? images.map(img => `<a href="${img.url}" target="_blank"><img src="${img.url}" style="width:40px; height:40px; object-fit:cover; border-radius:6px; margin:2px; border:1px solid #e2e8f0;" title="${img.originalName || ''}"></a>`).join('')
+            : '<span class="text-muted">—</span>'}
+                    </td>
+                  </tr>
+                `;
+      }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } catch (err) {
+      document.getElementById('completions-modal-body').innerHTML =
+        `<div class="text-danger p-3">Failed to load completions: ${err.message}</div>`;
+    }
+  }
+
+  document.getElementById('completions-modal-close')?.addEventListener('click', () => closeModal('completions-modal'));
 
   // Init
   fetchPrograms();

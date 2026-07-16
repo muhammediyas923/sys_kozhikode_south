@@ -54,6 +54,7 @@ async function createProgram(data, files) {
     attachments,
     published: false,
     createdBy: normalize(data.createdBy),
+    requiredCount: data.requiredCount ? parseInt(data.requiredCount, 10) || 1 : 1,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -67,6 +68,7 @@ async function updateProgram(id, data, files) {
       title: normalize(data.title),
       description: normalize(data.description),
       dueDate: data.dueDate ? new Date(data.dueDate) : null,
+      requiredCount: data.requiredCount ? parseInt(data.requiredCount, 10) || 1 : 1,
       updatedAt: new Date(),
     },
   };
@@ -156,22 +158,69 @@ async function markCompletion(programId, userId, unitData) {
   return { completed: true };
 }
 
-async function setCompletion(programId, userId, completed) {
+async function setCompletion(programId, userId, completed, unitData) {
   const database = db.getDb();
+
+  // Retrieve user details if not provided or incomplete
+  let details = unitData || {};
+  if (!details.zone || !details.circle || !details.unitName || !details.username) {
+    const user = await database.collection(collections.USERS_COLLECTION).findOne({
+      $or: [
+        { _id: new ObjectId(userId) },
+        { _id: userId }
+      ]
+    });
+    if (user) {
+      details = {
+        zone: user.zone,
+        circle: user.circle,
+        unitName: user.unitName,
+        username: user.username,
+      };
+    }
+  }
+
   const existing = await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION).findOne({
     programId: new ObjectId(programId),
     userId: normalize(userId),
   });
+
   const now = new Date();
   if (existing) {
     await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION).updateOne(
       { _id: existing._id },
-      { $set: { completed: Boolean(completed), updatedAt: now, completedAt: completed ? now : null } }
+      {
+        $set: {
+          completed: Boolean(completed),
+          updatedAt: now,
+          completedAt: completed ? now : null,
+          zone: normalize(details.zone || existing.zone),
+          circle: normalize(details.circle || existing.circle),
+          unitName: normalize(details.unitName || existing.unitName),
+          username: normalize(details.username || existing.username)
+        }
+      }
     );
-  } else if (completed) {
-    throw new Error('Completion record not found.');
+    return { completed: Boolean(completed) };
   }
-  return true;
+
+  if (completed) {
+    await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION).insertOne({
+      programId: new ObjectId(programId),
+      userId: normalize(userId),
+      zone: normalize(details.zone),
+      circle: normalize(details.circle),
+      unitName: normalize(details.unitName),
+      username: normalize(details.username),
+      completed: true,
+      completedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return { completed: true };
+  }
+
+  return { completed: false };
 }
 
 async function getUserCompletions(userId) {
@@ -191,12 +240,98 @@ async function getProgramsWithCompletion(userId, options = {}) {
   );
   return programs.map((p) => {
     const completion = completionMap.get(p._id.toString());
+    const requiredCount = p.requiredCount || 1;
+    const completionCount = completion ? (completion.completionCount || 1) : 0;
+    const progressPct = completion && completion.completed
+      ? Math.min(100, Math.round((completionCount / requiredCount) * 100))
+      : 0;
     return {
       ...p,
       completed: completion ? completion.completed : false,
       completedAt: completion ? completion.completedAt : null,
+      completionCount: completion ? (completion.completionCount || 1) : 0,
+      completionDate: completion ? (completion.completionDate || null) : null,
+      notes: completion ? (completion.notes || '') : '',
+      images: completion ? (completion.images || []) : [],
+      requiredCount,
+      progressPct,
     };
   });
+}
+
+// Submit a structured completion (from the modal form)
+async function submitCompletion(programId, userId, unitData, { completionCount, completionDate, notes, images }) {
+  const database = db.getDb();
+
+  let details = unitData || {};
+  if (!details.zone || !details.circle || !details.unitName || !details.username) {
+    const user = await database.collection(collections.USERS_COLLECTION).findOne({
+      $or: [{ _id: new ObjectId(userId) }, { _id: userId }],
+    });
+    if (user) {
+      details = { zone: user.zone, circle: user.circle, unitName: user.unitName, username: user.username };
+    }
+  }
+
+  const count = parseInt(completionCount, 10) || 1;
+  const compDate = completionDate ? new Date(completionDate) : new Date();
+  const now = new Date();
+
+  const existing = await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION).findOne({
+    programId: new ObjectId(programId),
+    userId: normalize(userId),
+  });
+
+  if (existing) {
+    await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION).updateOne(
+      { _id: existing._id },
+      {
+        $set: {
+          completed: true,
+          completionCount: count,
+          completionDate: compDate,
+          notes: normalize(notes),
+          images: images || [],
+          completedAt: compDate,
+          zone: normalize(details.zone || existing.zone),
+          circle: normalize(details.circle || existing.circle),
+          unitName: normalize(details.unitName || existing.unitName),
+          username: normalize(details.username || existing.username),
+          updatedAt: now,
+        },
+      }
+    );
+    return { completed: true, completionCount: count };
+  }
+
+  await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION).insertOne({
+    programId: new ObjectId(programId),
+    userId: normalize(userId),
+    zone: normalize(details.zone),
+    circle: normalize(details.circle),
+    unitName: normalize(details.unitName),
+    username: normalize(details.username),
+    completed: true,
+    completionCount: count,
+    completionDate: compDate,
+    notes: normalize(notes),
+    images: images || [],
+    completedAt: compDate,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return { completed: true, completionCount: count };
+}
+
+// Get all user completions for a specific program (admin detail view)
+async function getProgramCompletionDetails(programId) {
+  const database = db.getDb();
+  const completions = await database
+    .collection(collections.PROGRAM_COMPLETIONS_COLLECTION)
+    .find({ programId: new ObjectId(programId), completed: true })
+    .sort({ completedAt: -1 })
+    .toArray();
+  return completions;
 }
 
 async function getDashboardAnalytics() {
@@ -273,32 +408,95 @@ async function getDashboardAnalytics() {
 
 async function getCompletionReport(filters = {}) {
   const database = db.getDb();
-  const query = {};
-  if (filters.zone) query.zone = filters.zone;
-  if (filters.circle) query.circle = filters.circle;
-  if (filters.unitName) query.unitName = { $regex: filters.unitName, $options: 'i' };
-  if (filters.status === 'completed') query.completed = true;
-  if (filters.status === 'pending') query.completed = false;
-  if (filters.programId) query.programId = new ObjectId(filters.programId);
 
+  // 1. Fetch matching users (units)
+  const userQuery = { role: 'UnitUser' };
+  if (filters.zone) userQuery.zone = filters.zone;
+  if (filters.circle) userQuery.circle = filters.circle;
+  if (filters.unitName) userQuery.unitName = { $regex: filters.unitName, $options: 'i' };
+
+  const users = await database
+    .collection(collections.USERS_COLLECTION)
+    .find(userQuery)
+    .toArray();
+
+  // 2. Fetch matching programs
+  const programQuery = {};
+  if (filters.programId) {
+    programQuery._id = new ObjectId(filters.programId);
+  } else {
+    // If no program filter, report on published programs
+    programQuery.published = true;
+  }
+
+  const programs = await database
+    .collection(collections.PROGRAMS_COLLECTION)
+    .find(programQuery)
+    .toArray();
+
+  const programMap = new Map(programs.map(p => [p._id.toString(), p.title]));
+  const programIds = programs.map(p => p._id);
+  const userIds = users.map(u => u._id.toString());
+
+  // 3. Fetch completion records
   const completions = await database
     .collection(collections.PROGRAM_COMPLETIONS_COLLECTION)
-    .find(query)
-    .sort({ completedAt: -1 })
+    .find({
+      programId: { $in: programIds },
+      userId: { $in: userIds }
+    })
     .toArray();
 
-  // Enrich with program title
-  const programIds = [...new Set(completions.map((c) => c.programId.toString()))];
-  const programDocs = await database
-    .collection(collections.PROGRAMS_COLLECTION)
-    .find({ _id: { $in: programIds.map((id) => new ObjectId(id)) } })
-    .toArray();
-  const programMap = new Map(programDocs.map((p) => [p._id.toString(), p.title]));
+  // Create a mapping key: "userId_programId" -> completion record
+  const completionMap = new Map(
+    completions.map(c => [`${c.userId}_${c.programId.toString()}`, c])
+  );
 
-  return completions.map((c) => ({
-    ...c,
-    programTitle: programMap.get(c.programId.toString()) || 'Unknown Program',
-  }));
+  // 4. Generate report rows
+  const reportRows = [];
+  for (const user of users) {
+    for (const prog of programs) {
+      const key = `${user._id.toString()}_${prog._id.toString()}`;
+      const completion = completionMap.get(key);
+      const isCompleted = completion ? completion.completed : false;
+
+      reportRows.push({
+        _id: completion ? completion._id : null,
+        programId: prog._id,
+        userId: user._id.toString(),
+        zone: user.zone || '',
+        circle: user.circle || '',
+        unitName: user.unitName || '',
+        username: user.username || '',
+        completed: isCompleted,
+        completedAt: completion && isCompleted ? completion.completedAt : null,
+        createdAt: completion ? completion.createdAt : null,
+        updatedAt: completion ? completion.updatedAt : null,
+        programTitle: prog.title
+      });
+    }
+  }
+
+  // 5. Filter by completion status if requested
+  let filteredRows = reportRows;
+  if (filters.status === 'completed') {
+    filteredRows = reportRows.filter(r => r.completed === true);
+  } else if (filters.status === 'pending') {
+    filteredRows = reportRows.filter(r => r.completed === false);
+  }
+
+  // Sort by completedAt (completed first, then pending) or username
+  filteredRows.sort((a, b) => {
+    if (a.completed !== b.completed) {
+      return a.completed ? -1 : 1; // Completed first
+    }
+    if (a.completedAt && b.completedAt) {
+      return new Date(b.completedAt) - new Date(a.completedAt); // Most recent completion first
+    }
+    return a.unitName.localeCompare(b.unitName);
+  });
+
+  return filteredRows;
 }
 
 module.exports = {
@@ -312,8 +510,10 @@ module.exports = {
   deleteProgram,
   markCompletion,
   setCompletion,
+  submitCompletion,
   getUserCompletions,
   getProgramsWithCompletion,
+  getProgramCompletionDetails,
   getDashboardAnalytics,
   getCompletionReport,
 };

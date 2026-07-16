@@ -40,11 +40,14 @@ async function doLogin({ zone = '', circle = '', username, password }) {
 
   let user;
 
-  // Super Admin login — username only (no zone/circle required)
-  if (uname === (process.env.SUPER_ADMIN_USERNAME || 'superadmin')) {
-    user = await database
-      .collection(collections.USERS_COLLECTION)
-      .findOne({ username: uname, role: 'SuperAdmin' });
+  // First, check if the username belongs to a SuperAdmin in the database
+  const superAdmin = await database
+    .collection(collections.USERS_COLLECTION)
+    .findOne({ username: uname, role: 'SuperAdmin' });
+
+  if (superAdmin) {
+    // Super Admin login — username only (no zone/circle required)
+    user = superAdmin;
   } else {
     // Unit user — must match zone, circle, username
     if (!zone || !circle) {
@@ -109,6 +112,33 @@ async function getUserById(id) {
   return database
     .collection(collections.USERS_COLLECTION)
     .findOne({ _id: new ObjectId(id) });
+}
+
+async function isUsernameTaken(username, excludeId = null) {
+  const database = db.getDb();
+  const query = { username: normalize(username) };
+  if (excludeId) {
+    query._id = { $ne: new ObjectId(excludeId) };
+  }
+  const result = await database.collection(collections.USERS_COLLECTION).findOne(query);
+  return result != null;
+}
+
+async function updateUsername(id, username) {
+  const database = db.getDb();
+  const result = await database
+    .collection(collections.USERS_COLLECTION)
+    .updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { username: normalize(username), updatedAt: new Date() } }
+    );
+  return result.modifiedCount > 0;
+}
+
+async function verifyPassword(id, password) {
+  const user = await getUserById(id);
+  if (!user || !user.password) return false;
+  return bcrypt.compare(normalize(password), user.password);
 }
 
 async function createUser(data) {
@@ -191,8 +221,11 @@ module.exports = {
   doLogin,
   getAllUsers,
   getUserById,
+  isUsernameTaken,
   createUser,
   updateUser,
+  updateUsername,
+  verifyPassword,
   deleteUser,
   setUserStatus,
   resetPassword,
