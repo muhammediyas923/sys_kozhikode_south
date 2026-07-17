@@ -459,7 +459,7 @@ router.post('/unit/programs/:id/submit-completion',
   async (req, res, next) => {
     try {
       const user = req.session.user;
-      const { completionCount, completionDate, notes } = req.body;
+      const { completionCount, participantsCount, completionDate, notes } = req.body;
 
       // Build image records from uploaded files
       const images = (req.files || []).map(f => ({
@@ -472,7 +472,7 @@ router.post('/unit/programs/:id/submit-completion',
         req.params.id,
         user._id,
         { zone: user.zone, circle: user.circle, unitName: user.unitName, username: user.username },
-        { completionCount, completionDate, notes, images }
+        { completionCount, participantsCount, completionDate, notes, images }
       );
 
       // Fetch program title for notification
@@ -506,5 +506,39 @@ router.post('/unit/programs/:id/submit-completion',
 
 /* Legacy checkbox toggle endpoint removed — completion is now target-based via submit-completion */
 
+// Get update history for a program
+router.get('/unit/programs/:id/updates', auth.requireApiLogin, auth.requireApiRole('UnitUser'), async (req, res, next) => {
+  try {
+    const user = req.session.user;
+    const updates = await programHelper.getProgramUpdates(req.params.id, user._id);
+    return res.json({ success: true, updates });
+  } catch (error) { return next(error); }
+});
+
+// Edit an update
+router.put('/unit/programs/:id/updates/:updateId', auth.requireApiLogin, auth.requireApiRole('UnitUser'), async (req, res, next) => {
+  try {
+    const user = req.session.user;
+    const { completionCount, participantsCount, notes, completionDate } = req.body;
+    const updateData = {};
+    if (completionCount !== undefined) updateData.completionCount = parseInt(completionCount, 10);
+    if (participantsCount !== undefined) updateData.participantsCount = parseInt(participantsCount, 10);
+    if (notes !== undefined) updateData.notes = notes;
+    if (completionDate !== undefined) updateData.completionDate = new Date(completionDate);
+    updateData.updatedAt = new Date();
+
+    const success = await programHelper.editProgramUpdate(req.params.updateId, req.params.id, user._id, updateData);
+    return res.json({ success });
+  } catch (error) { return next(error); }
+});
+
+// Delete an update
+router.delete('/unit/programs/:id/updates/:updateId', auth.requireApiLogin, auth.requireApiRole('UnitUser'), async (req, res, next) => {
+  try {
+    const user = req.session.user;
+    const success = await programHelper.deleteProgramUpdate(req.params.updateId, req.params.id, user._id);
+    return res.json({ success });
+  } catch (error) { return next(error); }
+});
 
 module.exports = router;

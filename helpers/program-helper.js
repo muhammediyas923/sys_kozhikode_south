@@ -254,6 +254,7 @@ async function getProgramsWithCompletion(userId, options = {}) {
       completedAt: completion ? completion.completedAt : null,
       completionCount,
       completionDate: completion ? (completion.completionDate || null) : null,
+      participantsCount: completion ? (completion.participantsCount || 0) : 0,
       notes: completion ? (completion.notes || '') : '',
       images: completion ? (completion.images || []) : [],
       requiredCount,
@@ -263,8 +264,8 @@ async function getProgramsWithCompletion(userId, options = {}) {
 }
 
 // Submit a structured completion (from the modal form)
-// Additive: increments completionCount by the submitted amount
-async function submitCompletion(programId, userId, unitData, { completionCount, completionDate, notes, images }) {
+// Additive: creates a new update record and recalculates totals
+async function submitCompletion(programId, userId, unitData, { completionCount, participantsCount, completionDate, notes, images }) {
   const database = db.getDb();
 
   let details = unitData || {};
@@ -277,73 +278,119 @@ async function submitCompletion(programId, userId, unitData, { completionCount, 
     }
   }
 
-  // Fetch the program to get requiredCount (target)
-  const program = await database.collection(collections.PROGRAMS_COLLECTION).findOne({
-    _id: new ObjectId(programId),
-  });
-  const requiredCount = program ? (program.requiredCount || 1) : 1;
-
-  const addCount = parseInt(completionCount, 10) || 1;
   const compDate = completionDate ? new Date(completionDate) : new Date();
   const now = new Date();
 
-  const existing = await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION).findOne({
-    programId: new ObjectId(programId),
-    userId: normalize(userId),
-  });
-
-  if (existing) {
-    // Additive: increment count by the submitted amount
-    const prevCount = existing.completionCount || 0;
-    const newCount = prevCount + addCount;
-    const isCompleted = newCount >= requiredCount;
-
-    // Merge new images with existing ones
-    const existingImages = Array.isArray(existing.images) ? existing.images : [];
-    const newImages = Array.isArray(images) ? images : [];
-    const mergedImages = [...existingImages, ...newImages];
-
-    await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION).updateOne(
-      { _id: existing._id },
-      {
-        $set: {
-          completed: isCompleted,
-          completionCount: newCount,
-          completionDate: compDate,
-          notes: normalize(notes),
-          images: mergedImages,
-          completedAt: isCompleted ? compDate : (existing.completedAt || null),
-          zone: normalize(details.zone || existing.zone),
-          circle: normalize(details.circle || existing.circle),
-          unitName: normalize(details.unitName || existing.unitName),
-          username: normalize(details.username || existing.username),
-          updatedAt: now,
-        },
-      }
-    );
-    return { completed: isCompleted, completionCount: newCount };
-  }
-
-  // New completion record
-  const isCompleted = addCount >= requiredCount;
-  await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION).insertOne({
+  // Create update record
+  await database.collection(collections.PROGRAM_UPDATES_COLLECTION).insertOne({
     programId: new ObjectId(programId),
     userId: normalize(userId),
     zone: normalize(details.zone),
     circle: normalize(details.circle),
     unitName: normalize(details.unitName),
     username: normalize(details.username),
-    completed: isCompleted,
-    completionCount: addCount,
+    completionCount: parseInt(completionCount, 10) || 1,
+    participantsCount: parseInt(participantsCount, 10) || 0,
     completionDate: compDate,
     notes: normalize(notes),
     images: images || [],
-    completedAt: isCompleted ? compDate : null,
     createdAt: now,
     updatedAt: now,
   });
-  return { completed: isCompleted, completionCount: addCount };
+
+  return await recalculateCompletions(programId, userId, details);
 }
+
+async function recalculateCompletions(programId, userId, details) {
+  const database = db.getDb();
+  
+  // 1. Fetch all updates for this user and program
+  const updates = await database.collection(collections.PROGRAM_UPDATES_COLLECTION).find({
+    programId: new ObjectId(programId),
+    userId: normalize(userId)
+  }).sort({ createdAt: 1 }).toArray();
+
+  let totalCompletion = 0;
+  let totalParticipants = 0;
+  let mergedImages = [];
+  let latestDate = null;
+  
+  for (const upd of updates) {
+    totalCompletion += upd.completionCount || 0;
+    totalParticipants += upd.participantsCount || 0;
+    if (upd.images && upd.images.length) mergedImages.push(...upd.images);
+    if (!latestDate || new Date(upd.completionDate) > new Date(latestDate)) {
+      latestDate = upd.completionDate;
+    }
+  }
+
+  const program = await database.collection(collections.PROGRAMS_COLLECTION).findOne({
+    _id: new ObjectId(programId)
+  });
+  const requiredCount = program ? (program.requiredCount || 1) : 1;
+  const isCompleted = totalCompletion >= requiredCount;
+
+  // 2. Upsert the program_completions aggregate record
+  await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION).updateOne(
+    { programId: new ObjectId(programId), userId: normalize(userId) },
+    {
+      $set: {
+        completed: isCompleted,
+        completionCount: totalCompletion,
+        participantsCount: totalParticipants,
+        completionDate: latestDate || new Date(),
+        images: mergedImages,
+        completedAt: isCompleted ? (latestDate || new Date()) : null,
+        zone: normalize(details.zone),
+        circle: normalize(details.circle),
+        unitName: normalize(details.unitName),
+        username: normalize(details.username),
+        updatedAt: new Date()
+      }
+    },
+    { upsert: true }
+  );
+
+  return { completed: isCompleted, completionCount: totalCompletion, participantsCount: totalParticipants };
+}
+
+async function getProgramUpdates(programId, userId) {
+  const database = db.getDb();
+  return await database.collection(collections.PROGRAM_UPDATES_COLLECTION)
+    .find({ programId: new ObjectId(programId), userId: normalize(userId) })
+    .sort({ createdAt: -1 })
+    .toArray();
+}
+
+async function deleteProgramUpdate(updateId, programId, userId) {
+  const database = db.getDb();
+  const updateObj = await database.collection(collections.PROGRAM_UPDATES_COLLECTION).findOne({ _id: new ObjectId(updateId) });
+  if (!updateObj) return false;
+  
+  await database.collection(collections.PROGRAM_UPDATES_COLLECTION).deleteOne({ _id: new ObjectId(updateId) });
+  
+  // Need unitData to recalculate
+  const user = await database.collection(collections.USERS_COLLECTION).findOne({ _id: new ObjectId(userId) });
+  const details = user ? { zone: user.zone, circle: user.circle, unitName: user.unitName, username: user.username } : {};
+  
+  await recalculateCompletions(programId, userId, details);
+  return true;
+}
+
+async function editProgramUpdate(updateId, programId, userId, updateData) {
+  const database = db.getDb();
+  await database.collection(collections.PROGRAM_UPDATES_COLLECTION).updateOne(
+    { _id: new ObjectId(updateId) },
+    { $set: updateData }
+  );
+  
+  const user = await database.collection(collections.USERS_COLLECTION).findOne({ _id: new ObjectId(userId) });
+  const details = user ? { zone: user.zone, circle: user.circle, unitName: user.unitName, username: user.username } : {};
+  
+  await recalculateCompletions(programId, userId, details);
+  return true;
+}
+
 
 // Get all user completions for a specific program (admin detail view)
 async function getProgramCompletionDetails(programId) {
@@ -538,4 +585,7 @@ module.exports = {
   getProgramCompletionDetails,
   getDashboardAnalytics,
   getCompletionReport,
+  getProgramUpdates,
+  deleteProgramUpdate,
+  editProgramUpdate,
 };

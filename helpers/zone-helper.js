@@ -12,7 +12,7 @@ async function seedDefaultZones() {
 
   const defaultZones = [
     { name: 'Koduvally' },
-    { name: 'Zone 2' },
+    { name: 'Narikkuni' },
     { name: 'Zone 3' },
     { name: 'Zone 4' },
     { name: 'Zone 5' },

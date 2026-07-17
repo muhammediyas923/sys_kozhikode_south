@@ -300,6 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Zone</th>
                 <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Circle</th>
                 <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Count</th>
+                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Participants</th>
                 <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Progress</th>
                 <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Date</th>
                 <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Notes</th>
@@ -320,6 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td style="vertical-align:middle;">${c.zone || '—'}</td>
                     <td style="vertical-align:middle;">${c.circle || '—'}</td>
                     <td style="vertical-align:middle;"><span class="ds-badge ds-badge-success">${count}×</span></td>
+                    <td style="vertical-align:middle;"><span class="ds-badge" style="background:#e0f2fe; color:#0369a1;">${c.participantsCount || 0}</span></td>
                     <td style="vertical-align:middle;">
                       <div style="display:flex; align-items:center; gap:8px;">
                         <div style="flex:1; height:8px; background:#e2e8f0; border-radius:999px; min-width:60px;">
