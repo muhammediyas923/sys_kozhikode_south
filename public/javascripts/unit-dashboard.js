@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         : '<span class="ds-status-badge pending"><i class="ph ph-clock"></i> Pending</span>';
 
       // Completion ribbon for completed cards
-      const ribbon = isCompleted ? '<div class="ds-completion-ribbon">Completed ✓</div>' : '';
+      const ribbon = '';
 
       const attachmentsSection = p.attachments && p.attachments.length
         ? `<div class="mt-2 border-top pt-2"><strong style="font-size:0.75rem; color:var(--ds-text);">Attachments:</strong>` +
