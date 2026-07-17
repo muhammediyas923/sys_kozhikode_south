@@ -890,19 +890,34 @@ body.dashboard-body {
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-radius);
   padding: 20px;
-  transition: all var(--ds-transition);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  cursor: pointer;
+  overflow: hidden;
 }
 
 .ds-program-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--ds-shadow-md);
+  transform: translateY(-3px);
+  box-shadow: var(--ds-shadow-lg);
   border-color: var(--ds-primary);
 }
 
-.ds-program-card.completed {
-  border-left: 4px solid var(--ds-success);
-  background: linear-gradient(135deg, var(--ds-success-pale), white);
+.ds-program-card:active {
+  transform: translateY(-1px);
+}
+
+/* Completed card — green gradient border, glow, soft background */
+.ds-program-card.program-completed {
+  border: 2px solid transparent;
+  background-image: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 40%, #ffffff 100%), linear-gradient(135deg, #16a34a, #22c55e, #4ade80);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 0 20px rgba(22, 163, 74, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+  animation: completedGlow 3s ease-in-out infinite alternate;
+}
+
+.ds-program-card.program-completed:hover {
+  box-shadow: 0 0 28px rgba(22, 163, 74, 0.2), 0 8px 20px rgba(0, 0, 0, 0.08);
 }
 
 .ds-program-card.overdue {
@@ -942,41 +957,231 @@ body.dashboard-body {
   font-size: 0.9rem;
 }
 
-.ds-completion-toggle {
+/* ── PROGRESS TRACKING ────────────────────────────────────────── */
+.ds-progress-section {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid var(--ds-border);
 }
 
-.ds-checkbox {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--ds-border);
-  border-radius: 4px;
-  cursor: pointer;
-  appearance: none;
-  transition: all var(--ds-transition);
-  flex-shrink: 0;
+.ds-progress-track {
+  flex: 1;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
 }
 
-.ds-checkbox:checked {
-  background: var(--ds-success);
-  border-color: var(--ds-success);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.207 4.793a1 1 0 0 1 0 1.414l-5 5a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L6.5 9.086l4.293-4.293a1 1 0 0 1 1.414 0z'/%3E%3C/svg%3E");
+.ds-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #14533e, #16a34a, #4ade80);
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
 
-.ds-checkbox:hover {
-  border-color: var(--ds-primary);
+.ds-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+  animation: shimmer 2s infinite;
 }
 
-.ds-checkbox-label {
-  font-size: 0.875rem;
-  font-weight: 500;
+.ds-progress-fill.fill-complete {
+  background: linear-gradient(90deg, #16a34a, #22c55e, #4ade80);
+}
+
+.ds-progress-label {
+  font-size: 0.78rem;
+  font-weight: 700;
   color: var(--ds-text);
+  white-space: nowrap;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* ── STATUS BADGES ────────────────────────────────────────────── */
+.ds-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+}
+
+.ds-status-badge.pending {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #78350f;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+}
+
+.ds-status-badge.completed {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);
+}
+
+.ds-status-badge i {
+  font-size: 0.85rem;
+}
+
+/* ── COMPLETION RIBBON ────────────────────────────────────────── */
+.ds-completion-ribbon {
+  position: absolute;
+  top: 12px;
+  right: -32px;
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  color: white;
+  padding: 4px 36px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transform: rotate(45deg);
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ── COMPLETION ANIMATIONS ────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes completedGlow {
+  0%   { box-shadow: 0 0 16px rgba(22, 163, 74, 0.10), 0 4px 12px rgba(0,0,0,0.06); }
+  100% { box-shadow: 0 0 24px rgba(22, 163, 74, 0.18), 0 4px 12px rgba(0,0,0,0.06); }
+}
+
+@keyframes checkBounce {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.ds-check-animated {
+  animation: checkBounce 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── MODAL PROGRESS INFO ──────────────────────────────────────── */
+.ds-modal-progress-info {
+  background: linear-gradient(135deg, rgba(20, 83, 62, 0.04), rgba(22, 163, 74, 0.06));
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(20, 83, 62, 0.1);
+  border-radius: var(--ds-radius);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.ds-modal-progress-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.ds-modal-stat {
+  text-align: center;
+  padding: 8px 4px;
+}
+
+.ds-modal-stat-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--ds-primary);
+  line-height: 1;
+}
+
+.ds-modal-stat-label {
+  font-size: 0.7rem;
+  color: var(--ds-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
+
+.ds-modal-progress-bar {
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.ds-modal-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #14533e, #16a34a, #4ade80);
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.ds-modal-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+.ds-target-achieved {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border: 1px solid #86efac;
+  border-radius: var(--ds-radius);
+  padding: 14px 20px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.ds-target-achieved h4 {
+  color: #16a34a;
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.ds-target-achieved p {
+  color: #15803d;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* ── UPLOADED IMAGES GALLERY ──────────────────────────────────── */
+.ds-images-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ds-images-gallery img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--ds-border);
+  transition: transform 0.2s;
   cursor: pointer;
+}
+
+.ds-images-gallery img:hover {
+  transform: scale(1.05);
+  box-shadow: var(--ds-shadow-md);
 }
 
 /* ── FILTER BAR ───────────────────────────────────────────────── */

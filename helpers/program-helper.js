@@ -241,15 +241,18 @@ async function getProgramsWithCompletion(userId, options = {}) {
   return programs.map((p) => {
     const completion = completionMap.get(p._id.toString());
     const requiredCount = p.requiredCount || 1;
-    const completionCount = completion ? (completion.completionCount || 1) : 0;
-    const progressPct = completion && completion.completed
+    const completionCount = completion ? (completion.completionCount || 0) : 0;
+    // Always calculate progress from actual count vs target
+    const progressPct = requiredCount > 0
       ? Math.min(100, Math.round((completionCount / requiredCount) * 100))
       : 0;
+    // Auto-derive completed status from target
+    const isCompleted = completionCount >= requiredCount;
     return {
       ...p,
-      completed: completion ? completion.completed : false,
+      completed: isCompleted,
       completedAt: completion ? completion.completedAt : null,
-      completionCount: completion ? (completion.completionCount || 1) : 0,
+      completionCount,
       completionDate: completion ? (completion.completionDate || null) : null,
       notes: completion ? (completion.notes || '') : '',
       images: completion ? (completion.images || []) : [],
@@ -260,6 +263,7 @@ async function getProgramsWithCompletion(userId, options = {}) {
 }
 
 // Submit a structured completion (from the modal form)
+// Additive: increments completionCount by the submitted amount
 async function submitCompletion(programId, userId, unitData, { completionCount, completionDate, notes, images }) {
   const database = db.getDb();
 
@@ -273,7 +277,13 @@ async function submitCompletion(programId, userId, unitData, { completionCount, 
     }
   }
 
-  const count = parseInt(completionCount, 10) || 1;
+  // Fetch the program to get requiredCount (target)
+  const program = await database.collection(collections.PROGRAMS_COLLECTION).findOne({
+    _id: new ObjectId(programId),
+  });
+  const requiredCount = program ? (program.requiredCount || 1) : 1;
+
+  const addCount = parseInt(completionCount, 10) || 1;
   const compDate = completionDate ? new Date(completionDate) : new Date();
   const now = new Date();
 
@@ -283,16 +293,26 @@ async function submitCompletion(programId, userId, unitData, { completionCount, 
   });
 
   if (existing) {
+    // Additive: increment count by the submitted amount
+    const prevCount = existing.completionCount || 0;
+    const newCount = prevCount + addCount;
+    const isCompleted = newCount >= requiredCount;
+
+    // Merge new images with existing ones
+    const existingImages = Array.isArray(existing.images) ? existing.images : [];
+    const newImages = Array.isArray(images) ? images : [];
+    const mergedImages = [...existingImages, ...newImages];
+
     await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION).updateOne(
       { _id: existing._id },
       {
         $set: {
-          completed: true,
-          completionCount: count,
+          completed: isCompleted,
+          completionCount: newCount,
           completionDate: compDate,
           notes: normalize(notes),
-          images: images || [],
-          completedAt: compDate,
+          images: mergedImages,
+          completedAt: isCompleted ? compDate : (existing.completedAt || null),
           zone: normalize(details.zone || existing.zone),
           circle: normalize(details.circle || existing.circle),
           unitName: normalize(details.unitName || existing.unitName),
@@ -301,9 +321,11 @@ async function submitCompletion(programId, userId, unitData, { completionCount, 
         },
       }
     );
-    return { completed: true, completionCount: count };
+    return { completed: isCompleted, completionCount: newCount };
   }
 
+  // New completion record
+  const isCompleted = addCount >= requiredCount;
   await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION).insertOne({
     programId: new ObjectId(programId),
     userId: normalize(userId),
@@ -311,16 +333,16 @@ async function submitCompletion(programId, userId, unitData, { completionCount, 
     circle: normalize(details.circle),
     unitName: normalize(details.unitName),
     username: normalize(details.username),
-    completed: true,
-    completionCount: count,
+    completed: isCompleted,
+    completionCount: addCount,
     completionDate: compDate,
     notes: normalize(notes),
     images: images || [],
-    completedAt: compDate,
+    completedAt: isCompleted ? compDate : null,
     createdAt: now,
     updatedAt: now,
   });
-  return { completed: true, completionCount: count };
+  return { completed: isCompleted, completionCount: addCount };
 }
 
 // Get all user completions for a specific program (admin detail view)

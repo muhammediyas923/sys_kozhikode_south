@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderProgramsTable() {
     const tbody = document.getElementById('programs-table-body');
     if (!programs.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No programs created yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No programs created yet.</td></tr>';
       return;
     }
     tbody.innerHTML = programs.map((p, index) => {
@@ -44,8 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <tr>
           <td>${index + 1}</td>
-          <td><strong>${p.title}</strong>${p.requiredCount > 1 ? ` <span class="ds-badge ds-badge-primary ms-1">${p.requiredCount}×</span>` : ''}</td>
+          <td><strong>${p.title}</strong></td>
           <td><div class="text-truncate" style="max-width:180px;" title="${p.description || ''}">${p.description || '—'}</div></td>
+          <td><span class="ds-badge ds-badge-primary">${p.requiredCount || 1}×</span></td>
           <td>${p.dueDate ? formatDate(p.dueDate) : '<span class="text-muted">—</span>'}</td>
           <td>${attachmentsList}</td>
           <td>${statusBadge}</td>

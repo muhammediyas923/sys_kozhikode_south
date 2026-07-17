@@ -1,4 +1,4 @@
-/* Unit User Dashboard JS */
+/* Unit User Dashboard JS — Target-Based Progress System */
 document.addEventListener('DOMContentLoaded', () => {
   const dsUtils = window.dsUtils || {};
   const showToast = dsUtils.showToast || ((message, type = 'info') => { console.log(type.toUpperCase() + ':', message); });
@@ -27,15 +27,16 @@ document.addEventListener('DOMContentLoaded', () => {
     return list.map(p => ({
       ...p,
       _id: p._id && p._id.toString ? p._id.toString() : p._id,
-      completed: p.completed === true || p.completed === 'true' || p.completed === 1,
       dueDate: p.dueDate || null,
       completedAt: p.completedAt || null,
-      completionCount: p.completionCount || 0,
+      completionCount: parseInt(p.completionCount, 10) || 0,
       completionDate: p.completionDate || null,
       notes: p.notes || '',
       images: Array.isArray(p.images) ? p.images : [],
-      requiredCount: p.requiredCount || 1,
-      progressPct: p.progressPct || 0,
+      requiredCount: parseInt(p.requiredCount, 10) || 1,
+      progressPct: parseInt(p.progressPct, 10) || 0,
+      // Auto-derive completed from target
+      completed: (parseInt(p.completionCount, 10) || 0) >= (parseInt(p.requiredCount, 10) || 1),
     }));
   }
 
@@ -99,8 +100,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     grid.innerHTML = filtered.map(p => {
       const isOverdue = p.dueDate && new Date(p.dueDate) < new Date() && !p.completed;
-      const cardClass = p.completed ? 'completed' : (isOverdue ? 'overdue' : '');
       const requiredCount = p.requiredCount || 1;
+      const completionCount = p.completionCount || 0;
+      const pct = p.progressPct || 0;
+      const isCompleted = p.completed;
+
+      // Card class
+      const cardClass = isCompleted ? 'program-completed' : (isOverdue ? 'overdue' : '');
+
+      // Status badge
+      const statusBadge = isCompleted
+        ? '<span class="ds-status-badge completed"><i class="ph ph-check-circle"></i> Completed</span>'
+        : '<span class="ds-status-badge pending"><i class="ph ph-clock"></i> Pending</span>';
+
+      // Completion ribbon for completed cards
+      const ribbon = isCompleted ? '<div class="ds-completion-ribbon">Completed ✓</div>' : '';
 
       const attachmentsSection = p.attachments && p.attachments.length
         ? `<div class="mt-2 border-top pt-2"><strong style="font-size:0.75rem; color:var(--ds-text);">Attachments:</strong>` +
@@ -109,30 +123,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const publishBadge = p.published ? '' : '<span class="ds-badge ds-badge-warning" style="font-size:0.72rem;">Draft</span>';
 
-      // Progress bar for multi-completion programs
-      const progressSection = requiredCount > 1 ? (() => {
-        const pct = p.progressPct || 0;
-        const count = p.completionCount || 0;
-        return `
-          <div class="mt-2" style="font-size:0.78rem; color:var(--ds-text-muted);">
-            Progress: <strong>${count}/${requiredCount}</strong>
-            <div style="height:6px; background:#e2e8f0; border-radius:999px; margin-top:4px;">
-              <div style="height:100%; width:${pct}%; background:var(--ds-primary); border-radius:999px; transition:width 0.4s;"></div>
-            </div>
-          </div>`;
-      })() : '';
-
-      // Completion badge (shows count/date if completed)
-      const completionBadge = p.completed && p.completionCount
-        ? `<div class="mt-1" style="font-size:0.75rem; color:#16a34a;"><i class="ph ph-check-circle"></i> Completed ${p.completionCount}x · ${formatDate(p.completionDate || p.completedAt)}</div>`
-        : '';
+      // Progress bar
+      const fillClass = pct >= 100 ? 'fill-complete' : '';
 
       return `
         <div class="col-md-6 col-lg-4">
           <div class="ds-program-card ${cardClass}" data-id="${p._id}">
+            ${ribbon}
             <div class="d-flex align-items-center justify-content-between mb-2">
               <h3 class="ds-program-title mb-0">${p.title}</h3>
-              ${publishBadge}
+              <div class="d-flex align-items-center gap-2">
+                ${publishBadge}
+                ${statusBadge}
+              </div>
             </div>
             <p class="ds-program-desc">${p.description || 'No description provided.'}</p>
 
@@ -141,46 +144,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 <i class="ph ph-calendar"></i> Due: ${p.dueDate ? formatDate(p.dueDate) : 'No due date'}
               </div>
               ${isOverdue ? `<div class="ds-program-meta-item text-danger"><i class="ph ph-warning"></i> Overdue</div>` : ''}
-              ${requiredCount > 1 ? `<div class="ds-program-meta-item"><i class="ph ph-repeat"></i> Required: ${requiredCount}×</div>` : ''}
+              <div class="ds-program-meta-item">
+                <i class="ph ph-target"></i> Target: ${requiredCount}×
+              </div>
             </div>
 
-            ${progressSection}
             ${attachmentsSection}
-            ${completionBadge}
 
-            <div class="ds-completion-toggle">
-              <input class="ds-checkbox prog-checkbox" type="checkbox" id="check-${p._id}" data-id="${p._id}" ${p.completed ? 'checked' : ''}>
-              <label class="ds-checkbox-label" for="check-${p._id}">
-                ${p.completed ? 'Marked as Completed' : 'Mark as Completed'}
-              </label>
+            <div class="ds-progress-section">
+              <div class="ds-progress-track">
+                <div class="ds-progress-fill ${fillClass}" style="width:${pct}%;"></div>
+              </div>
+              <span class="ds-progress-label">${completionCount}/${requiredCount}</span>
             </div>
           </div>
         </div>
       `;
     }).join('');
 
-    // Attach checkbox listeners → open modal instead of toggling directly
-    grid.querySelectorAll('.prog-checkbox').forEach(cb => {
-      cb.addEventListener('change', () => {
-        if (cb.checked) {
-          // Uncheck visually — modal will handle the actual check on submit
-          cb.checked = false;
-          const program = programs.find(p => p._id === cb.dataset.id);
-          openCompletionModal(cb.dataset.id, program ? program.title : '');
-        } else {
-          // Allow unchecking directly (toggle off)
-          handleUncomplete(cb.dataset.id, cb);
-        }
-      });
-    });
-
-    // Already-completed: clicking checkbox allows re-submitting (update)
-    grid.querySelectorAll('.prog-checkbox:checked').forEach(cb => {
-      // Override: clicking an already-checked box opens modal to update
-      cb.addEventListener('change', (e) => {
-        if (!cb.checked) {
-          handleUncomplete(cb.dataset.id, cb);
-        }
+    // Attach card click → open modal
+    grid.querySelectorAll('.ds-program-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        // Don't trigger on attachment link clicks
+        if (e.target.closest('a')) return;
+        const programId = card.dataset.id;
+        const program = programs.find(p => p._id === programId);
+        if (program) openCompletionModal(program);
       });
     });
   }
@@ -189,15 +178,92 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let completionImageFiles = [];
 
-  function openCompletionModal(programId, programTitle) {
-    document.getElementById('completion-program-id').value = programId;
-    document.getElementById('completion-program-name').value = programTitle;
+  function openCompletionModal(program) {
+    const requiredCount = program.requiredCount || 1;
+    const completionCount = program.completionCount || 0;
+    const remaining = Math.max(0, requiredCount - completionCount);
+    const pct = Math.min(100, Math.round((completionCount / requiredCount) * 100));
+    const isCompleted = completionCount >= requiredCount;
+
+    // Set hidden ID
+    document.getElementById('completion-program-id').value = program._id;
+    document.getElementById('completion-program-name').value = program.title;
+    document.getElementById('completion-modal-heading').textContent = program.title;
+
+    // Populate progress info
+    document.getElementById('modal-target').textContent = requiredCount;
+    document.getElementById('modal-completed').textContent = completionCount;
+    document.getElementById('modal-remaining').textContent = remaining;
+    document.getElementById('modal-pct-label').textContent = pct + '%';
+
+    // Progress bar (animate after modal opens)
+    const progressFill = document.getElementById('modal-progress-fill');
+    progressFill.style.width = '0%';
+    setTimeout(() => { progressFill.style.width = pct + '%'; }, 100);
+
+    // Status badge
+    const statusBadge = document.getElementById('modal-status-badge');
+    if (isCompleted) {
+      statusBadge.className = 'ds-status-badge completed';
+      statusBadge.innerHTML = '<i class="ph ph-check-circle"></i> Completed';
+    } else {
+      statusBadge.className = 'ds-status-badge pending';
+      statusBadge.innerHTML = '<i class="ph ph-clock"></i> Pending';
+    }
+
+    // Description
+    const descEl = document.getElementById('completion-program-desc');
+    descEl.textContent = program.description || 'No description provided.';
+
+    // Previously uploaded images
+    const imagesGroup = document.getElementById('modal-existing-images-group');
+    const imagesContainer = document.getElementById('modal-existing-images');
+    if (program.images && program.images.length) {
+      imagesContainer.innerHTML = program.images.map(img =>
+        `<a href="${img.url}" target="_blank"><img src="${img.url}" alt="${img.originalName || 'Evidence'}" title="${img.originalName || ''}"></a>`
+      ).join('');
+      imagesGroup.classList.remove('d-none');
+    } else {
+      imagesContainer.innerHTML = '';
+      imagesGroup.classList.add('d-none');
+    }
+
+    // Target achieved banner
+    const achievedBanner = document.getElementById('modal-target-achieved');
+    const submitBtn = document.getElementById('completion-modal-submit');
+    const formFields = document.getElementById('completion-form-fields');
+    const uploadGroup = document.getElementById('completion-upload-group');
+    const notesGroup = document.getElementById('completion-notes-group');
+
+    if (isCompleted) {
+      achievedBanner.classList.remove('d-none');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="ph ph-check-circle"></i> Target Achieved';
+      formFields.style.display = 'none';
+      uploadGroup.style.display = 'none';
+      notesGroup.style.display = 'none';
+    } else {
+      achievedBanner.classList.add('d-none');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="ph ph-paper-plane-tilt"></i> Submit Completion';
+      formFields.style.display = '';
+      uploadGroup.style.display = '';
+      notesGroup.style.display = '';
+    }
+
+    // Reset form fields
     document.getElementById('completion-count').value = 1;
     document.getElementById('completion-date').value = new Date().toISOString().slice(0, 10);
     document.getElementById('completion-notes').value = '';
     document.getElementById('completion-modal-error').classList.add('d-none');
     completionImageFiles = [];
     renderImagePreviews();
+
+    // Limit max completion count to remaining
+    const countInput = document.getElementById('completion-count');
+    if (!isCompleted) {
+      countInput.max = remaining;
+    }
 
     const modal = document.getElementById('completion-modal');
     modal.classList.add('open');
@@ -215,7 +281,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Count +/- buttons
   document.getElementById('count-inc')?.addEventListener('click', () => {
     const el = document.getElementById('completion-count');
-    el.value = Math.min(999, parseInt(el.value || 0) + 1);
+    const max = parseInt(el.max) || 999;
+    el.value = Math.min(max, parseInt(el.value || 0) + 1);
   });
   document.getElementById('count-dec')?.addEventListener('click', () => {
     const el = document.getElementById('completion-count');
@@ -320,17 +387,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Update local program state
+      // Update local program state with server response
       const program = programs.find(p => p._id === programId);
       if (program) {
-        program.completed = true;
-        program.completionCount = parseInt(completionCount);
-        program.completionDate = completionDate;
-        program.notes = notes;
-        program.completedAt = new Date().toISOString();
-        // Recalculate progress
-        const req = program.requiredCount || 1;
-        program.progressPct = Math.min(100, Math.round((program.completionCount / req) * 100));
+        program.completionCount = data.completionCount || program.completionCount;
+        program.completed = data.completed || false;
+        program.completedAt = program.completed ? new Date().toISOString() : null;
+        const req = data.requiredCount || program.requiredCount || 1;
+        program.progressPct = data.progressPct || Math.min(100, Math.round((program.completionCount / req) * 100));
       }
 
       closeCompletionModal();
@@ -343,7 +407,11 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (e) { /* ignore */ }
       window.dispatchEvent(new CustomEvent('sys:completion-updated', { detail: { programId } }));
 
-      showToast('Program completion submitted successfully! ✓', 'success');
+      if (data.completed) {
+        showToast('🎉 Target achieved! Program completed successfully!', 'success');
+      } else {
+        showToast('Program completion submitted successfully! ✓', 'success');
+      }
     } catch (err) {
       errorEl.textContent = 'Network error. Please try again.';
       errorEl.classList.remove('d-none');
@@ -352,37 +420,6 @@ document.addEventListener('DOMContentLoaded', () => {
       submitBtn.innerHTML = '<i class="ph ph-paper-plane-tilt"></i> Submit Completion';
     }
   });
-
-  // ── Uncomplete (uncheck) handler ──────────────────────────────────────
-
-  async function handleUncomplete(programId, cb) {
-    const program = programs.find(p => p._id === programId);
-    if (!program) return;
-
-    const prev = { completed: program.completed, completionCount: program.completionCount };
-    program.completed = false;
-    program.completionCount = 0;
-    program.progressPct = 0;
-    renderPrograms();
-    updateStats();
-
-    try {
-      const resp = await fetch(`/api/unit/programs/${programId}/complete`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ completed: false }),
-      });
-      const data = await resp.json();
-      if (!data.success) throw new Error('Update failed');
-      showToast('Program marked as pending.', 'info');
-    } catch (err) {
-      program.completed = prev.completed;
-      program.completionCount = prev.completionCount;
-      renderPrograms();
-      updateStats();
-      showToast('Failed to update program status.', 'danger');
-    }
-  }
 
   // ── Stats ─────────────────────────────────────────────────────────────
 

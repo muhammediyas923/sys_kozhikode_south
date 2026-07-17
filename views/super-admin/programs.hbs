@@ -76,6 +76,7 @@
                   <th>#</th>
                   <th>Title</th>
                   <th>Description</th>
+                  <th>Target</th>
                   <th>Due Date</th>
                   <th>Attachments</th>
                   <th>Status</th>
@@ -85,7 +86,7 @@
               </thead>
               <tbody id="programs-table-body">
                 <tr>
-                  <td colspan="8">
+                    <td colspan="9">
                     <div class="ds-loading-overlay">
                       <div class="ds-spinner"></div>
                     </div>
@@ -132,8 +133,8 @@
             <div class="col-md-6">
               <div class="ds-form-group">
                 <label class="ds-form-label" for="prog-required-count">
-                  Required Completion Count
-                  <small class="text-muted" style="font-weight:400;"> (how many times users must complete)</small>
+                  Target Count
+                  <small class="text-muted" style="font-weight:400;"> (how many times users must complete this program)</small>
                 </label>
                 <input type="number" class="ds-form-control" id="prog-required-count" name="requiredCount" value="1"
                   min="1" max="999" placeholder="1">

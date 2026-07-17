@@ -449,19 +449,8 @@ router.get('/unit/programs', auth.requireApiLogin, auth.requireApiRole('UnitUser
   } catch (error) { return next(error); }
 });
 
-router.put('/unit/programs/:id/complete', auth.requireApiLogin, auth.requireApiRole('UnitUser'), async (req, res, next) => {
-  try {
-    const user = req.session.user;
-    const { completed } = req.body;
-    const database_result = await programHelper.setCompletion(req.params.id, user._id, Boolean(completed), {
-      zone: user.zone,
-      circle: user.circle,
-      unitName: user.unitName,
-      username: user.username,
-    });
-    return res.json({ success: true, completed: database_result.completed });
-  } catch (error) { return next(error); }
-});
+/* Legacy checkbox toggle endpoint removed — completion is now target-based via submit-completion */
+
 
 // Submit a structured completion with optional images and notes
 router.post('/unit/programs/:id/submit-completion',
@@ -504,24 +493,18 @@ router.post('/unit/programs/:id/submit-completion',
         console.warn('Notification creation failed:', notifErr.message);
       }
 
-      return res.json({ success: true, ...result });
+      return res.json({
+        success: true,
+        completionCount: result.completionCount,
+        completed: result.completed,
+        requiredCount,
+        progressPct: Math.min(100, Math.round((result.completionCount / requiredCount) * 100)),
+      });
     } catch (error) { return next(error); }
   }
 );
 
-// (Legacy) mark/unmark completion via simple toggle
-router.put('/unit/programs/:id/complete', auth.requireApiLogin, auth.requireApiRole('UnitUser'), async (req, res, next) => {
-  try {
-    const user = req.session.user;
-    const { completed } = req.body;
-    const database_result = await programHelper.setCompletion(req.params.id, user._id, Boolean(completed), {
-      zone: user.zone,
-      circle: user.circle,
-      unitName: user.unitName,
-      username: user.username,
-    });
-    return res.json({ success: true, completed: database_result.completed });
-  } catch (error) { return next(error); }
-});
+/* Legacy checkbox toggle endpoint removed — completion is now target-based via submit-completion */
+
 
 module.exports = router;
