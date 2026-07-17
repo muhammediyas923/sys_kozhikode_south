@@ -350,8 +350,8 @@ async function getProgramCompletionDetails(programId) {
   const database = db.getDb();
   const completions = await database
     .collection(collections.PROGRAM_COMPLETIONS_COLLECTION)
-    .find({ programId: new ObjectId(programId), completed: true })
-    .sort({ completedAt: -1 })
+    .find({ programId: new ObjectId(programId) })
+    .sort({ updatedAt: -1 })
     .toArray();
   return completions;
 }
