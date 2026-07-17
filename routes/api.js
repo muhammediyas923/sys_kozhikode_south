@@ -496,6 +496,7 @@ router.post('/unit/programs/:id/submit-completion',
       return res.json({
         success: true,
         completionCount: result.completionCount,
+        participantsCount: result.participantsCount,
         completed: result.completed,
         requiredCount,
         progressPct: Math.min(100, Math.round((result.completionCount / requiredCount) * 100)),

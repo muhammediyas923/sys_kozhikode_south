@@ -29,7 +29,7 @@ async function seedSuperAdmin() {
   }
 }
 
-async function doLogin({ zone = '', circle = '', username, password }) {
+async function doLogin({ zone = '', circle = '', username, password, isAdminLogin = false }) {
   const database = db.getDb();
   const uname = normalize(username);
   const pwd = normalize(password);
@@ -49,6 +49,9 @@ async function doLogin({ zone = '', circle = '', username, password }) {
     // Super Admin login — username only (no zone/circle required)
     user = superAdmin;
   } else {
+    if (isAdminLogin) {
+      return { status: false, message: 'Invalid credentials.' };
+    }
     // Unit user — must match zone, circle, username
     if (!zone || !circle) {
       return { status: false, message: 'Zone and Circle are required.' };

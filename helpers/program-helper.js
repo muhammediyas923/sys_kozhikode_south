@@ -10,11 +10,27 @@ function normalize(val) {
 
 async function getAllPrograms() {
   const database = db.getDb();
-  return database
+  const programs = await database
     .collection(collections.PROGRAMS_COLLECTION)
     .find()
     .sort({ createdAt: -1 })
     .toArray();
+
+  const completions = await database
+    .collection(collections.PROGRAM_COMPLETIONS_COLLECTION)
+    .find({}, { projection: { programId: 1, participantsCount: 1 } })
+    .toArray();
+    
+  const participantCounts = {};
+  completions.forEach(c => {
+    const pid = c.programId.toString();
+    participantCounts[pid] = (participantCounts[pid] || 0) + (c.participantsCount || 0);
+  });
+  
+  return programs.map(p => ({
+    ...p,
+    totalParticipants: participantCounts[p._id.toString()] || 0
+  }));
 }
 
 async function getPublishedPrograms() {

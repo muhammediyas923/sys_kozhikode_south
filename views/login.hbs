@@ -459,6 +459,21 @@
       icon.className = show ? 'ph ph-eye-slash' : 'ph ph-eye';
     });
 
+    // Handle Enter key for navigation
+    document.getElementById('login-form').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
+        e.preventDefault();
+        if (currentStep === 1) document.getElementById('btn-zone-next').click();
+        else if (currentStep === 2) document.getElementById('btn-circle-next').click();
+        else if (currentStep === 3) document.getElementById('btn-unit-next').click();
+        else if (currentStep === 4) {
+          const pw = document.getElementById('password-input').value;
+          if (pw) { document.getElementById('login-form').submit(); }
+          else { showError('Please enter your password.'); }
+        }
+      }
+    });
+
     // Form submit validation
     document.getElementById('login-form').addEventListener('submit', (e) => {
       const pw = document.getElementById('password-input').value;

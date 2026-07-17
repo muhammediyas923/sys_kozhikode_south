@@ -202,6 +202,10 @@
               <div class="ds-modal-stat-value" id="modal-remaining">0</div>
               <div class="ds-modal-stat-label">Remaining</div>
             </div>
+            <div class="ds-modal-stat">
+              <div class="ds-modal-stat-value" id="modal-participants" style="color:var(--ds-primary);">0</div>
+              <div class="ds-modal-stat-label">Participants</div>
+            </div>
           </div>
           <div class="d-flex align-items-center justify-content-between" style="font-size:0.8rem; margin-bottom:6px;">
             <span id="modal-status-badge" class="ds-status-badge pending"><i class="ph ph-clock"></i> Pending</span>
@@ -240,26 +244,34 @@
               style="background:#f8fafc; color:var(--ds-text-muted); font-weight:600;">
           </div>
 
-          <!-- Completion Count + Date Row -->
+          <!-- Completion Details Row -->
           <div class="row g-3 mb-3" id="completion-form-fields">
-            <div class="col-sm-5">
+            <div class="col-sm-4">
               <div class="ds-form-group">
                 <label class="ds-form-label" for="completion-count">
-                  How many completed? <span class="text-danger">*</span>
+                  Count <span class="text-danger">*</span>
                 </label>
                 <div style="display:flex; align-items:center; gap:8px;">
                   <button type="button" class="ds-btn ds-btn-outline ds-btn-sm" id="count-dec"
                     style="width:36px; height:36px; padding:0; font-size:1.2rem;">−</button>
                   <input type="number" class="ds-form-control" id="completion-count" name="completionCount" value="1"
-                    min="1" max="999" style="text-align:center; width:80px; font-size:1.1rem; font-weight:700;">
+                    min="1" max="999" style="text-align:center; width:60px; font-size:1.1rem; font-weight:700;">
                   <button type="button" class="ds-btn ds-btn-outline ds-btn-sm" id="count-inc"
                     style="width:36px; height:36px; padding:0; font-size:1.2rem;">+</button>
                 </div>
               </div>
             </div>
-            <div class="col-sm-7">
+            <div class="col-sm-4">
               <div class="ds-form-group">
-                <label class="ds-form-label" for="completion-date">Completion Date</label>
+                <label class="ds-form-label" for="completion-participants">
+                  Participants <span class="text-danger">*</span>
+                </label>
+                <input type="number" class="ds-form-control" id="completion-participants" name="participantsCount" min="1" max="99999" style="font-size:1.1rem; font-weight:700;" placeholder="e.g. 20">
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="ds-form-group">
+                <label class="ds-form-label" for="completion-date">Date</label>
                 <input type="date" class="ds-form-control" id="completion-date" name="completionDate">
               </div>
             </div>
@@ -292,6 +304,16 @@
           </div>
         </form>
         <div id="completion-modal-error" class="text-danger small mt-2 d-none"></div>
+
+        <!-- Update History Section -->
+        <div id="update-history-container" class="mt-4 pt-3 border-top d-none">
+          <h5 style="font-size:0.95rem; font-weight:600; margin-bottom:12px; color:var(--ds-text);">
+            <i class="ph ph-clock-counter-clockwise"></i> Update History
+          </h5>
+          <div id="update-history-list" style="max-height:250px; overflow-y:auto; padding-right:8px;">
+            <!-- History items populated via JS -->
+          </div>
+        </div>
       </div>
       <div class="ds-modal-footer">
         <button class="ds-btn ds-btn-outline" id="completion-modal-cancel">Close</button>

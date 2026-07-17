@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderProgramsTable() {
     const tbody = document.getElementById('programs-table-body');
     if (!programs.length) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No programs created yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-muted">No programs created yet.</td></tr>';
       return;
     }
     tbody.innerHTML = programs.map((p, index) => {
@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td><strong>${p.title}</strong></td>
           <td><div class="text-truncate" style="max-width:180px;" title="${p.description || ''}">${p.description || '—'}</div></td>
           <td><span class="ds-badge ds-badge-primary">${p.requiredCount || 1}×</span></td>
+          <td><span class="ds-badge" style="background:#e0f2fe; color:#0369a1;"><i class="ph ph-users"></i> ${p.totalParticipants || 0}</span></td>
           <td>${p.dueDate ? formatDate(p.dueDate) : '<span class="text-muted">—</span>'}</td>
           <td>${attachmentsList}</td>
           <td>${statusBadge}</td>
@@ -321,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td style="vertical-align:middle;">${c.zone || '—'}</td>
                     <td style="vertical-align:middle;">${c.circle || '—'}</td>
                     <td style="vertical-align:middle;"><span class="ds-badge ds-badge-success">${count}×</span></td>
-                    <td style="vertical-align:middle;"><span class="ds-badge" style="background:#e0f2fe; color:#0369a1;">${c.participantsCount || 0}</span></td>
+                    <td style="vertical-align:middle;"><span class="ds-badge" style="background:#e0f2fe; color:#0369a1;"><i class="ph ph-users"></i> ${c.participantsCount || 0}</span></td>
                     <td style="vertical-align:middle;">
                       <div style="display:flex; align-items:center; gap:8px;">
                         <div style="flex:1; height:8px; background:#e2e8f0; border-radius:999px; min-width:60px;">

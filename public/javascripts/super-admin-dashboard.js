@@ -137,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${c.circle || '—'}</td>
         <td>${c.programTitle || '—'}</td>
         <td><span class="ds-badge ds-badge-success">${c.completionCount || 1}×</span></td>
+        <td><span class="ds-badge" style="background:#e0f2fe; color:#0369a1;"><i class="ph ph-users"></i> ${c.participantsCount || 0}</span></td>
         <td><span style="max-width:140px; display:inline-block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;" title="${(c.notes || '').replace(/"/g, '&quot;')}">${c.notes ? c.notes : '<span class="text-muted">—</span>'}</span></td>
         <td>${c.completedAt ? new Date(c.completedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
       </tr>

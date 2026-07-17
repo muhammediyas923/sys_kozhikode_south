@@ -47,7 +47,7 @@ router.post('/admin/login', async function (req, res, next) {
   try {
     const { username, password } = req.body;
     // For admin login, zone and circle are bypassed, so we don't pass them
-    const result = await userHelper.doLogin({ username, password });
+    const result = await userHelper.doLogin({ username, password, isAdminLogin: true });
     if (!result.status || result.user.role !== 'SuperAdmin') {
       req.session.loginError = result.user?.role !== 'SuperAdmin' && result.status
         ? 'Access denied. Not an admin account.'

@@ -194,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('modal-target').textContent = requiredCount;
     document.getElementById('modal-completed').textContent = completionCount;
     document.getElementById('modal-remaining').textContent = remaining;
+    document.getElementById('modal-participants').textContent = program.participantsCount || 0;
     document.getElementById('modal-pct-label').textContent = pct + '%';
 
     // Progress bar (animate after modal opens)
@@ -253,11 +254,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Reset form fields
     document.getElementById('completion-count').value = 1;
+    document.getElementById('completion-participants').value = '';
     document.getElementById('completion-date').value = new Date().toISOString().slice(0, 10);
     document.getElementById('completion-notes').value = '';
     document.getElementById('completion-modal-error').classList.add('d-none');
     completionImageFiles = [];
     renderImagePreviews();
+
+    // Fetch and render update history
+    fetchAndRenderUpdateHistory(program._id);
 
     // Limit max completion count to remaining
     const countInput = document.getElementById('completion-count');
@@ -273,6 +278,41 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('completion-modal').classList.remove('open');
     completionImageFiles = [];
     renderImagePreviews();
+    document.getElementById('update-history-container').classList.add('d-none');
+  }
+
+  async function fetchAndRenderUpdateHistory(programId) {
+    const container = document.getElementById('update-history-container');
+    const listEl = document.getElementById('update-history-list');
+    listEl.innerHTML = '<div class="text-center py-3"><i class="ph ph-spinner ds-spin"></i> Loading history...</div>';
+    container.classList.remove('d-none');
+
+    try {
+      const resp = await fetch(`/api/unit/programs/${programId}/updates`);
+      const data = await resp.json();
+      if (!data.success || !data.updates || data.updates.length === 0) {
+        container.classList.add('d-none');
+        return;
+      }
+      
+      const updates = data.updates;
+      listEl.innerHTML = updates.map(u => {
+        const d = new Date(u.completionDate || u.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        const imgs = (u.images || []).map(img => `<a href="${img.url}" target="_blank" class="d-inline-block me-1"><img src="${img.url}" style="width:36px; height:36px; object-fit:cover; border-radius:4px; border:1px solid #e2e8f0;"></a>`).join('');
+        return `
+          <div class="mb-2 p-2 border rounded" style="background:#f8fafc; font-size:0.85rem;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <strong><i class="ph ph-calendar-blank"></i> ${d}</strong>
+              <span class="ds-badge" style="background:#e0f2fe; color:#0369a1;"><i class="ph ph-users"></i> ${u.participantsCount || 0}</span>
+            </div>
+            ${u.notes ? `<div class="text-muted mb-1" style="white-space:pre-wrap;">${u.notes}</div>` : ''}
+            ${imgs ? `<div class="mt-1">${imgs}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      listEl.innerHTML = '<div class="text-danger small py-2">Failed to load history.</div>';
+    }
   }
 
   document.getElementById('completion-modal-close')?.addEventListener('click', closeCompletionModal);
@@ -353,6 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('completion-modal-submit')?.addEventListener('click', async () => {
     const programId = document.getElementById('completion-program-id').value;
     const completionCount = document.getElementById('completion-count').value;
+    const participantsCount = document.getElementById('completion-participants').value;
     const completionDate = document.getElementById('completion-date').value;
     const notes = document.getElementById('completion-notes').value;
     const errorEl = document.getElementById('completion-modal-error');
@@ -363,13 +404,20 @@ document.addEventListener('DOMContentLoaded', () => {
       errorEl.classList.remove('d-none');
       return;
     }
+    
+    if (!participantsCount || parseInt(participantsCount) < 1) {
+      errorEl.textContent = 'Number of participants is required and must be a positive integer.';
+      errorEl.classList.remove('d-none');
+      return;
+    }
 
     errorEl.classList.add('d-none');
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="ph ph-spinner"></i> Submitting...';
+    submitBtn.innerHTML = '<i class="ph ph-spinner ds-spin"></i> Submitting...';
 
     const formData = new FormData();
     formData.append('completionCount', completionCount);
+    formData.append('participantsCount', participantsCount);
     formData.append('completionDate', completionDate);
     formData.append('notes', notes);
     completionImageFiles.forEach(f => formData.append('images', f));
@@ -391,6 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const program = programs.find(p => p._id === programId);
       if (program) {
         program.completionCount = data.completionCount || program.completionCount;
+        program.participantsCount = data.participantsCount !== undefined ? data.participantsCount : (program.participantsCount || 0);
         program.completed = data.completed || false;
         program.completedAt = program.completed ? new Date().toISOString() : null;
         const req = data.requiredCount || program.requiredCount || 1;
