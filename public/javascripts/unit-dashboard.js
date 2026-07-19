@@ -69,17 +69,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderPrograms() {
     const grid = document.getElementById('programs-grid');
     const countLabel = document.getElementById('program-count-label');
-    const searchVal = document.getElementById('prog-search').value.toLowerCase();
     const filterVal = document.getElementById('prog-filter').value;
     if (countLabel) countLabel.textContent = `${programs.length} program${programs.length === 1 ? '' : 's'} available`;
 
     const filtered = programs.filter(p => {
-      const matchesSearch = p.title.toLowerCase().includes(searchVal) ||
-        (p.description && p.description.toLowerCase().includes(searchVal));
       const matchesFilter = filterVal === 'all' ||
         (filterVal === 'completed' && p.completed) ||
         (filterVal === 'pending' && !p.completed);
-      return matchesSearch && matchesFilter;
+      return matchesFilter;
     });
 
     if (!filtered.length) {
@@ -503,7 +500,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Event Listeners
-  document.getElementById('prog-search').addEventListener('input', renderPrograms);
   document.getElementById('prog-filter').addEventListener('change', renderPrograms);
   document.getElementById('refresh-btn')?.addEventListener('click', () => {
     showToast('Refreshing programs...', 'info');
