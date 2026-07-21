@@ -6,9 +6,9 @@ module.exports = {
     return res.redirect('/login');
   },
 
-  requireRole: function (role) {
+  requireRole: function (...roles) {
     return function (req, res, next) {
-      if (req.session?.user?.role === role) {
+      if (roles.includes(req.session?.user?.role)) {
         return next();
       }
       res.status(403).render('error', { message: 'Access denied' });
@@ -22,9 +22,9 @@ module.exports = {
     return res.status(401).json({ success: false, message: 'Unauthorized. Please log in.' });
   },
 
-  requireApiRole: function (role) {
+  requireApiRole: function (...roles) {
     return function (req, res, next) {
-      if (req.session?.user?.role === role) {
+      if (roles.includes(req.session?.user?.role)) {
         return next();
       }
       return res.status(403).json({ success: false, message: 'Access denied.' });

@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <tr>
         <td>${index + 1}</td>
         <td><strong>${u.unitName}</strong></td>
+        <td>${u.code || '—'}</td>
         <td><code>${u.username}</code></td>
         <td>${u.zone || '—'}</td>
         <td>${u.circle || '—'}</td>
@@ -131,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (data.success) {
             const u = data.user;
             document.getElementById('user-unitname').value = u.unitName;
+            document.getElementById('user-code').value = u.code || '';
             document.getElementById('user-username').value = u.username;
             document.getElementById('user-zone').value = u.zone || '';
             
@@ -198,6 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('add-user-btn')?.addEventListener('click', () => {
     editingUserId = null;
     document.getElementById('user-unitname').value = '';
+    document.getElementById('user-code').value = '';
     document.getElementById('user-username').value = '';
     document.getElementById('user-zone').value = '';
     document.getElementById('user-circle').innerHTML = '<option value="">Select circle...</option>';
@@ -217,6 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // User Save
   document.getElementById('user-modal-save')?.addEventListener('click', async () => {
     const unitName = document.getElementById('user-unitname').value.trim();
+    const code = document.getElementById('user-code').value.trim();
     const username = document.getElementById('user-username').value.trim();
     const zone = document.getElementById('user-zone').value;
     const circle = document.getElementById('user-circle').value;
@@ -229,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const payload = { unitName, username, zone, circle };
+    const payload = { unitName, code, username, zone, circle };
     if (!editingUserId) payload.password = password;
 
     try {

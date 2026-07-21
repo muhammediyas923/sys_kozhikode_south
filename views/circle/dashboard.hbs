@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circle Dashboard | SYS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/stylesheets/variables.css">
+  <link rel="stylesheet" href="/stylesheets/dashboard.css?v=2">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#14533e">
+  <link rel="apple-touch-icon" href="/images/icons/icon-192x192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body class="dashboard-body">
+  <div class="ds-sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="ds-sidebar" id="sidebar">
+    <div class="ds-sidebar-brand">
+      <img src="/images/Gemini_Generated_Image_41luhh41luhh41lu-removebg-preview.png" alt="SYS" class="ds-sidebar-logo">
+      <div>
+        <div class="ds-sidebar-title">{{user.unitName}}</div>
+        <div class="ds-sidebar-subtitle">{{user.zone}}</div>
+      </div>
+    </div>
+
+    <nav class="ds-sidebar-nav">
+      <div class="ds-nav-section-title">Circle Dashboard</div>
+      <a href="/circle-dashboard" class="ds-nav-link active">
+        <i class="ph ph-squares-four"></i> Overview
+      </a>
+      <a href="#programs-section" class="ds-nav-link">
+        <i class="ph ph-clipboard-text"></i> My Programs
+        <span class="ds-nav-badge" id="pending-badge">...</span>
+      </a>
+      <!-- Notifications removed -->
+    </nav>
+
+    <div class="ds-sidebar-footer">
+      <div class="ds-user-widget">
+        <div class="ds-user-avatar" id="unit-avatar">C</div>
+        <div class="ds-user-info">
+          <div class="ds-user-name">{{user.username}}</div>
+          <div class="ds-user-role">Circle User</div>
+        </div>
+        <a href="/logout" class="ds-logout-btn" title="Logout"><i class="ph ph-sign-out"></i></a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="ds-main">
+    <!-- TOP BAR -->
+    <header class="ds-topbar">
+      <button type="button" class="ds-topbar-menu-btn" id="sidebar-toggle" onclick="window.toggleSidebar?.()"><i
+          class="ph ph-list"></i></button>
+      <div class="ds-topbar-title">Circle Dashboard <span>/ Overview</span></div>
+      <!-- Notification button and panel removed -->
+    </header>
+
+    <!-- CONTENT -->
+    <main class="ds-content">
+      <!-- Welcome Header -->
+      <div class="ds-page-header">
+        <h1>Welcome, {{user.unitName}} 👋</h1>
+        <p>
+          <i class="ph ph-map-pin" style="color:var(--ds-primary);"></i> {{user.zone}} &nbsp;·&nbsp;
+          <i class="ph ph-circles-three" style="color:var(--ds-primary);"></i> {{user.circle}}
+        </p>
+      </div>
+
+      <!-- STAT CARDS -->
+      <div class="ds-stat-grid mb-4" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));">
+        <div class="ds-stat-card" style="--card-accent:#f5a623; --card-icon-bg:#fef3d8; --card-icon-color:#d97706;">
+          <div class="ds-stat-icon"><i class="ph ph-clipboard-text"></i></div>
+          <div class="ds-stat-value" id="stat-total">—</div>
+          <div class="ds-stat-label">Total Programs</div>
+        </div>
+        <div class="ds-stat-card" style="--card-accent:#16a34a; --card-icon-bg:#f0fdf4; --card-icon-color:#16a34a;">
+          <div class="ds-stat-icon"><i class="ph ph-check-circle"></i></div>
+          <div class="ds-stat-value" id="stat-done">—</div>
+          <div class="ds-stat-label">Completed</div>
+        </div>
+        <div class="ds-stat-card" style="--card-accent:#e53e3e; --card-icon-bg:#fff5f5; --card-icon-color:#e53e3e;">
+          <div class="ds-stat-icon"><i class="ph ph-clock"></i></div>
+          <div class="ds-stat-value" id="stat-pending">—</div>
+          <div class="ds-stat-label">Pending</div>
+        </div>
+        <div class="ds-stat-card" style="--card-accent:#0284c7; --card-icon-bg:#eff6ff; --card-icon-color:#0284c7;">
+          <div class="ds-stat-icon"><i class="ph ph-percent"></i></div>
+          <div class="ds-stat-value" id="stat-pct">—%</div>
+          <div class="ds-stat-label">Completion Rate</div>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="ds-card mb-4">
+        <div class="ds-card-body" style="padding: 16px 20px;">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span style="font-size:0.875rem; font-weight:600; color:var(--ds-text);">Overall Progress</span>
+            <span id="progress-text" style="font-size:0.875rem; color:var(--ds-text-muted);">Loading...</span>
+          </div>
+          <div class="ds-progress">
+            <div class="ds-progress-bar" id="progress-bar" style="width:0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROGRAMS GRID -->
+      <div id="programs-section">
+        <div class="d-flex align-items-center justify-content-between mb-3" style="gap:16px; flex-wrap:wrap;">
+          <div>
+            <h2 style="font-size:1.1rem; font-weight:700; margin:0;">
+              <i class="ph ph-clipboard-text" style="color:var(--ds-primary);"></i> My Programs
+            </h2>
+            <div id="program-count-label" style="font-size:0.9rem; color:var(--ds-text-muted); margin-top:4px;">Loading
+              programs…</div>
+            <div style="font-size:0.85rem; color:var(--ds-text-muted); margin-top:4px;">Server programs:
+              {{programs.length}}</div>
+          </div>
+          <button class="ds-btn ds-btn-outline ds-btn-sm" id="refresh-btn">
+            <i class="ph ph-arrows-clockwise"></i> Refresh
+          </button>
+        </div>
+
+        <!-- Filter -->
+        <div class="ds-filter-bar mb-3" style="padding:12px 16px;">
+
+          <select class="ds-form-control ds-form-select" style="max-width:160px;" id="prog-filter">
+            <option value="all">All Programs</option>
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+
+        <div id="programs-grid" class="row g-3">
+          {{#if programs.length}}
+          {{#each programs}}
+          <div class="col-md-6 col-lg-4">
+            <div class="ds-program-card" data-id="{{_id}}">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <h3 class="ds-program-title mb-0">{{title}}</h3>
+                {{#unless published}}<span class="ds-badge ds-badge-warning"
+                  style="font-size:0.72rem;">Draft</span>{{/unless}}
+              </div>
+              <p class="ds-program-desc">{{#if description}}{{description}}{{else}}No description provided.{{/if}}</p>
+              <div class="ds-program-meta">
+                <div class="ds-program-meta-item">
+                  <i class="ph ph-calendar"></i> Due: {{#if dueDate}}{{dueDate}}{{else}}No due date{{/if}}
+                </div>
+              </div>
+            </div>
+          </div>
+          {{/each}}
+          {{else}}
+          <div class="col-12">
+            <div class="ds-empty">
+              <i class="ph ph-clipboard-text ds-empty-icon"></i>
+              <h3>No programs available</h3>
+              <p>All admin-created programs should show here once they are added.</p>
+            </div>
+          </div>
+          {{/if}}
+        </div>
+      </div>
+
+      <!-- Notifications section removed -->
+    </main>
+  </div>
+
+  <div class="ds-toast-container" id="toast-container"></div>
+
+  <!-- ═══ COMPLETION MODAL ═══════════════════════════════════════════════ -->
+  <div class="ds-modal-backdrop" id="completion-modal">
+    <div class="ds-modal" style="max-width:600px; max-height:90vh; overflow-y:auto;">
+      <div class="ds-modal-header">
+        <h4 class="ds-modal-title"><i class="ph ph-clipboard-text"></i> <span id="completion-modal-heading">Program
+            Details</span></h4>
+        <button class="ds-modal-close" id="completion-modal-close"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="ds-modal-body">
+        <!-- Progress Info Section -->
+        <div class="ds-modal-progress-info" id="modal-progress-info">
+          <div class="ds-modal-progress-stats">
+            <div class="ds-modal-stat">
+              <div class="ds-modal-stat-value" id="modal-target">0</div>
+              <div class="ds-modal-stat-label">Target</div>
+            </div>
+            <div class="ds-modal-stat">
+              <div class="ds-modal-stat-value" id="modal-completed">0</div>
+              <div class="ds-modal-stat-label">Completed</div>
+            </div>
+            <div class="ds-modal-stat">
+              <div class="ds-modal-stat-value" id="modal-remaining">0</div>
+              <div class="ds-modal-stat-label">Remaining</div>
+            </div>
+            <div class="ds-modal-stat">
+              <div class="ds-modal-stat-value" id="modal-participants" style="color:var(--ds-primary);">0</div>
+              <div class="ds-modal-stat-label">Participants</div>
+            </div>
+          </div>
+          <div class="d-flex align-items-center justify-content-between" style="font-size:0.8rem; margin-bottom:6px;">
+            <span id="modal-status-badge" class="ds-status-badge pending"><i class="ph ph-clock"></i> Pending</span>
+            <span id="modal-pct-label" style="font-weight:700; color:var(--ds-primary);">0%</span>
+          </div>
+          <div class="ds-modal-progress-bar">
+            <div class="ds-modal-progress-fill" id="modal-progress-fill" style="width:0%;"></div>
+          </div>
+        </div>
+
+        <!-- Target Achieved Banner (hidden by default) -->
+        <div class="ds-target-achieved d-none" id="modal-target-achieved">
+          <h4><i class="ph ph-check-circle ds-check-animated"></i> Target Achieved!</h4>
+          <p>This program has reached its completion target. Great work!</p>
+        </div>
+
+        <!-- Program Description -->
+        <div class="ds-form-group mb-3" id="modal-description-group">
+          <label class="ds-form-label">Description</label>
+          <p id="completion-program-desc" style="font-size:0.875rem; color:var(--ds-text-muted); margin:0;">—</p>
+        </div>
+
+        <!-- Previously Uploaded Images -->
+        <div class="ds-form-group mb-3 d-none" id="modal-existing-images-group">
+          <label class="ds-form-label">Previously Uploaded Images</label>
+          <div class="ds-images-gallery" id="modal-existing-images"></div>
+        </div>
+
+        <form id="completion-form" enctype="multipart/form-data">
+          <input type="hidden" id="completion-program-id" name="programId">
+
+          <!-- Program Name (read-only) -->
+          <div class="ds-form-group mb-3">
+            <label class="ds-form-label">Program</label>
+            <input type="text" class="ds-form-control" id="completion-program-name" readonly
+              style="background:#f8fafc; color:var(--ds-text-muted); font-weight:600;">
+          </div>
+
+          <!-- Completion Details Row -->
+          <div class="row g-3 mb-3" id="completion-form-fields">
+            <div class="col-sm-4">
+              <div class="ds-form-group">
+                <label class="ds-form-label" for="completion-count">
+                  Count <span class="text-danger">*</span>
+                </label>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <button type="button" class="ds-btn ds-btn-outline ds-btn-sm" id="count-dec"
+                    style="width:36px; height:36px; padding:0; font-size:1.2rem;">−</button>
+                  <input type="number" class="ds-form-control" id="completion-count" name="completionCount" value="1"
+                    min="1" max="999" style="text-align:center; width:60px; font-size:1.1rem; font-weight:700;">
+                  <button type="button" class="ds-btn ds-btn-outline ds-btn-sm" id="count-inc"
+                    style="width:36px; height:36px; padding:0; font-size:1.2rem;">+</button>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="ds-form-group">
+                <label class="ds-form-label" for="completion-participants">
+                  Participants <span class="text-danger">*</span>
+                </label>
+                <input type="number" class="ds-form-control" id="completion-participants" name="participantsCount" min="1" max="99999" style="font-size:1.1rem; font-weight:700;" placeholder="e.g. 20">
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="ds-form-group">
+                <label class="ds-form-label" for="completion-date">Date</label>
+                <input type="date" class="ds-form-control" id="completion-date" name="completionDate">
+              </div>
+            </div>
+          </div>
+
+          <!-- Evidence Images -->
+          <div class="ds-form-group mb-3" id="completion-upload-group">
+            <label class="ds-form-label">Evidence Images <small class="text-muted">(Optional · JPG/PNG/WEBP · max
+                5)</small></label>
+            <div id="completion-upload-zone"
+              style="border:2px dashed #d1d5db; border-radius:10px; padding:20px; text-align:center; cursor:pointer; background:#f9fafb; transition:border-color 0.2s;">
+              <i class="ph ph-image" style="font-size:2rem; color:#9ca3af;"></i>
+              <p style="margin:6px 0 0; color:#6b7280; font-size:0.875rem;"><strong>Click to upload</strong> or drag &
+                drop images</p>
+              <p style="margin:2px 0 0; font-size:0.75rem; color:#9ca3af;">JPG, PNG, WEBP only</p>
+              <input type="file" id="completion-images-input" name="images" multiple accept=".jpg,.jpeg,.png,.webp"
+                style="display:none;">
+            </div>
+            <!-- Image preview grid -->
+            <div id="completion-image-previews" class="mt-2"
+              style="display:grid; grid-template-columns: repeat(auto-fill, minmax(90px,1fr)); gap:8px;"></div>
+          </div>
+
+          <!-- Notes -->
+          <div class="ds-form-group mb-1" id="completion-notes-group">
+            <label class="ds-form-label" for="completion-notes">Notes <small
+                class="text-muted">(Optional)</small></label>
+            <textarea class="ds-form-control" id="completion-notes" name="notes" rows="3"
+              placeholder="Describe your completion experience..." style="resize:vertical;"></textarea>
+          </div>
+        </form>
+        <div id="completion-modal-error" class="text-danger small mt-2 d-none"></div>
+
+        <!-- Update History Section -->
+        <div id="update-history-container" class="mt-4 pt-3 border-top d-none">
+          <h5 style="font-size:0.95rem; font-weight:600; margin-bottom:12px; color:var(--ds-text);">
+            <i class="ph ph-clock-counter-clockwise"></i> Update History
+          </h5>
+          <div id="update-history-list" style="max-height:250px; overflow-y:auto; padding-right:8px;">
+            <!-- History items populated via JS -->
+          </div>
+        </div>
+      </div>
+      <div class="ds-modal-footer">
+        <button class="ds-btn ds-btn-outline" id="completion-modal-cancel">Close</button>
+        <button class="ds-btn ds-btn-primary" id="completion-modal-submit" style="min-width:160px;">
+          <i class="ph ph-paper-plane-tilt"></i> Submit Completion
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.__USER_ROLE__ = '{{user.role}}';
+    window.__INITIAL_PROGRAMS__ = {{{programsJson}}};
+    console.debug('unit dashboard initial programs', window.__INITIAL_PROGRAMS__);
+  </script>
+  <script src="/javascripts/pwa.js"></script>
+  <script src="/javascripts/unit-dashboard.js?v=6"></script>
+</body>
+
+</html>

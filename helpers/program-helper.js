@@ -63,6 +63,16 @@ async function createProgram(data, files) {
       });
     });
   }
+  
+  let assignTo = [];
+  if (Array.isArray(data.assignTo)) {
+    assignTo = data.assignTo;
+  } else if (typeof data.assignTo === 'string') {
+    assignTo = [data.assignTo];
+  } else {
+    assignTo = ['UnitUser'];
+  }
+  
   const result = await database.collection(collections.PROGRAMS_COLLECTION).insertOne({
     title: normalize(data.title),
     description: normalize(data.description),
@@ -71,6 +81,7 @@ async function createProgram(data, files) {
     published: false,
     createdBy: normalize(data.createdBy),
     requiredCount: data.requiredCount ? parseInt(data.requiredCount, 10) || 1 : 1,
+    assignTo,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -79,6 +90,14 @@ async function createProgram(data, files) {
 
 async function updateProgram(id, data, files) {
   const database = db.getDb();
+  
+  let assignTo = [];
+  if (Array.isArray(data.assignTo)) {
+    assignTo = data.assignTo;
+  } else if (typeof data.assignTo === 'string') {
+    assignTo = [data.assignTo];
+  }
+  
   const update = {
     $set: {
       title: normalize(data.title),
@@ -88,6 +107,11 @@ async function updateProgram(id, data, files) {
       updatedAt: new Date(),
     },
   };
+  
+  if (assignTo.length > 0) {
+    update.$set.assignTo = assignTo;
+  }
+  
   if (files && files.length) {
     const newAttachments = files.map((f) => ({
       originalName: f.originalname,
@@ -249,7 +273,12 @@ async function getUserCompletions(userId) {
 
 async function getProgramsWithCompletion(userId, options = {}) {
   const database = db.getDb();
-  const programs = options.publishedOnly ? await getPublishedPrograms() : await getAllPrograms();
+  let programs = options.publishedOnly ? await getPublishedPrograms() : await getAllPrograms();
+  
+  if (options.userRole) {
+    programs = programs.filter(p => !p.assignTo || p.assignTo.includes(options.userRole) || p.assignTo.length === 0);
+  }
+
   const completions = await getUserCompletions(userId);
   const completionMap = new Map(
     completions.map((c) => [c.programId.toString(), c])
@@ -273,6 +302,64 @@ async function getProgramsWithCompletion(userId, options = {}) {
       participantsCount: completion ? (completion.participantsCount || 0) : 0,
       notes: completion ? (completion.notes || '') : '',
       images: completion ? (completion.images || []) : [],
+      requiredCount,
+      progressPct,
+    };
+  });
+}
+
+async function getAggregatePrograms(userRole, userDetails) {
+  const database = db.getDb();
+  const programs = await getPublishedPrograms();
+  
+  // Find all units in the scope to calculate the target correctly.
+  const unitQuery = { role: 'UnitUser' };
+  if (userRole === 'ZoneUser') {
+    unitQuery.zone = userDetails.zone;
+  } else if (userRole === 'CircleUser') {
+    unitQuery.zone = userDetails.zone;
+    unitQuery.circle = userDetails.circle;
+  }
+  const unitsCount = await database.collection(collections.USERS_COLLECTION).countDocuments(unitQuery);
+
+  const matchQuery = {};
+  if (userRole === 'ZoneUser') {
+    matchQuery.zone = userDetails.zone;
+  } else if (userRole === 'CircleUser') {
+    matchQuery.zone = userDetails.zone;
+    matchQuery.circle = userDetails.circle;
+  }
+
+  // Aggregate completions for each program in the scope
+  const aggregations = await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION)
+    .aggregate([
+      { $match: matchQuery },
+      { $group: {
+          _id: "$programId",
+          totalCompletionCount: { $sum: "$completionCount" },
+          totalParticipantsCount: { $sum: "$participantsCount" }
+      }}
+    ]).toArray();
+
+  const aggMap = new Map(aggregations.map(a => [a._id.toString(), a]));
+
+  return programs.map((p) => {
+    const agg = aggMap.get(p._id.toString());
+    const requiredCountPerUnit = p.requiredCount || 1;
+    const requiredCount = unitsCount * requiredCountPerUnit;
+    const completionCount = agg ? (agg.totalCompletionCount || 0) : 0;
+    
+    const progressPct = requiredCount > 0
+      ? Math.min(100, Math.round((completionCount / requiredCount) * 100))
+      : (unitsCount === 0 ? 0 : 100);
+      
+    const isCompleted = requiredCount > 0 && completionCount >= requiredCount;
+
+    return {
+      ...p,
+      completed: isCompleted,
+      completionCount,
+      participantsCount: agg ? (agg.totalParticipantsCount || 0) : 0,
       requiredCount,
       progressPct,
     };
@@ -417,6 +504,53 @@ async function getProgramCompletionDetails(programId) {
     .sort({ updatedAt: -1 })
     .toArray();
   return completions;
+}
+
+// Get completion stats grouped by assigned user roles for a specific program
+async function getGroupedCompletionStats(programId) {
+  const database = db.getDb();
+  const program = await getProgramById(programId);
+  if (!program) return null;
+
+  const assignTo = program.assignTo && program.assignTo.length > 0 ? program.assignTo : ['UnitUser'];
+  const stats = {};
+  
+  for (const role of assignTo) {
+    const usersInRole = await database.collection(collections.USERS_COLLECTION)
+      .find({ role, status: 'Active' })
+      .project({ _id: 1 })
+      .toArray();
+      
+    const usersCount = usersInRole.length;
+    const userIds = usersInRole.map(u => u._id.toString());
+    
+    const requiredCount = (program.requiredCount || 1) * usersCount;
+    
+    const completions = await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION)
+      .find({ programId: new ObjectId(programId) })
+      .toArray();
+      
+    let roleCompletionCount = 0;
+    for (const c of completions) {
+      if (userIds.includes(c.userId.toString())) {
+        roleCompletionCount += (c.completionCount || 0);
+      }
+    }
+    
+    const progressPct = requiredCount > 0 
+      ? Math.min(100, Math.round((roleCompletionCount / requiredCount) * 100))
+      : (usersCount === 0 ? 0 : 100);
+      
+    stats[role] = {
+      target: requiredCount,
+      completed: roleCompletionCount,
+      remaining: Math.max(0, requiredCount - roleCompletionCount),
+      progress: progressPct,
+      status: (requiredCount > 0 && roleCompletionCount >= requiredCount) ? 'Completed' : 'Pending'
+    };
+  }
+  
+  return stats;
 }
 
 async function getDashboardAnalytics() {
@@ -604,4 +738,5 @@ module.exports = {
   getProgramUpdates,
   deleteProgramUpdate,
   editProgramUpdate,
+  getAggregatePrograms,
 };

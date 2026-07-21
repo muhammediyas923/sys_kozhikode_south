@@ -155,11 +155,14 @@ async function createUser(data) {
   const hashed = await bcrypt.hash(normalize(data.password), 10);
   const result = await database.collection(collections.USERS_COLLECTION).insertOne({
     unitName: normalize(data.unitName),
+    code: normalize(data.code),
     username: normalize(data.username),
     password: hashed,
     role: 'UnitUser',
     zone: normalize(data.zone),
+    zoneId: data.zoneId ? new ObjectId(data.zoneId) : null,
     circle: normalize(data.circle),
+    circleId: data.circleId ? new ObjectId(data.circleId) : null,
     status: 'Active',
     createdAt: new Date(),
   });
@@ -171,12 +174,16 @@ async function updateUser(id, data) {
   const update = {
     $set: {
       unitName: normalize(data.unitName),
+      code: normalize(data.code),
       username: normalize(data.username),
       zone: normalize(data.zone),
       circle: normalize(data.circle),
       updatedAt: new Date(),
     },
   };
+  if (data.zoneId) update.$set.zoneId = new ObjectId(data.zoneId);
+  if (data.circleId) update.$set.circleId = new ObjectId(data.circleId);
+
   const result = await database
     .collection(collections.USERS_COLLECTION)
     .updateOne({ _id: new ObjectId(id) }, update);

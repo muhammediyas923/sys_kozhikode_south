@@ -4,13 +4,22 @@ const userHelper = require('../helpers/user-helper');
 const programHelper = require('../helpers/program-helper');
 const auth = require('../middlewares/auth');
 
+const circleHelper = require('../helpers/circle-helper');
+const zoneHelper = require('../helpers/zone-helper');
+
 /* GET home page */
 router.get('/', function (req, res) {
   if (req.session.user) return res.redirect('/dashboard');
   res.render('index');
 });
 
-/* GET Login page */
+/* GET User Selection page */
+router.get('/user-selection', function (req, res) {
+  if (req.session.user) return res.redirect('/dashboard');
+  res.render('user-selection', { layout: false });
+});
+
+/* GET Unit Login page */
 router.get('/login', function (req, res) {
   if (req.session.user) return res.redirect('/dashboard');
   const loginError = req.session.loginError;
@@ -18,7 +27,7 @@ router.get('/login', function (req, res) {
   res.render('login', { loginError, layout: false });
 });
 
-/* POST Login */
+/* POST Unit Login */
 router.post('/login', async function (req, res, next) {
   try {
     const { zone, circle, username, password } = req.body;
@@ -26,6 +35,54 @@ router.post('/login', async function (req, res, next) {
     if (!result.status) {
       req.session.loginError = result.message;
       return res.redirect('/login');
+    }
+    req.session.user = result.user;
+    return res.redirect('/dashboard');
+  } catch (error) {
+    next(error);
+  }
+});
+
+/* GET Circle Login page */
+router.get('/circle-login', function (req, res) {
+  if (req.session.user) return res.redirect('/dashboard');
+  const loginError = req.session.loginError;
+  delete req.session.loginError;
+  res.render('circle-login', { loginError, layout: false });
+});
+
+/* POST Circle Login */
+router.post('/circle-login', async function (req, res, next) {
+  try {
+    const { zoneId, username, password } = req.body;
+    const result = await circleHelper.doCircleLogin({ zoneId, username, password });
+    if (!result.status) {
+      req.session.loginError = result.message;
+      return res.redirect('/circle-login');
+    }
+    req.session.user = result.user;
+    return res.redirect('/dashboard');
+  } catch (error) {
+    next(error);
+  }
+});
+
+/* GET Zone Login page */
+router.get('/zone-login', function (req, res) {
+  if (req.session.user) return res.redirect('/dashboard');
+  const loginError = req.session.loginError;
+  delete req.session.loginError;
+  res.render('zone-login', { loginError, layout: false });
+});
+
+/* POST Zone Login */
+router.post('/zone-login', async function (req, res, next) {
+  try {
+    const { username, password } = req.body;
+    const result = await zoneHelper.doZoneLogin({ username, password });
+    if (!result.status) {
+      req.session.loginError = result.message;
+      return res.redirect('/zone-login');
     }
     req.session.user = result.user;
     return res.redirect('/dashboard');
@@ -64,7 +121,7 @@ router.post('/admin/login', async function (req, res, next) {
 /* Logout */
 router.get('/logout', function (req, res) {
   req.session.destroy(() => {
-    res.redirect('/login');
+    res.redirect('/user-selection');
   });
 });
 
@@ -72,6 +129,10 @@ router.get('/logout', function (req, res) {
 router.get('/dashboard', auth.requireLogin, function (req, res) {
   if (req.session.user.role === 'SuperAdmin') {
     return res.redirect('/super-admin');
+  } else if (req.session.user.role === 'ZoneUser') {
+    return res.redirect('/zone-dashboard');
+  } else if (req.session.user.role === 'CircleUser') {
+    return res.redirect('/circle-dashboard');
   }
   return res.redirect('/unit-dashboard');
 });
@@ -145,8 +206,8 @@ router.get('/super-admin/reports', auth.requireLogin, auth.requireRole('SuperAdm
 
 router.get('/unit-dashboard', auth.requireLogin, auth.requireRole('UnitUser'), async function (req, res, next) {
   try {
-    const programs = Array.isArray(await programHelper.getProgramsWithCompletion(req.session.user._id, { publishedOnly: true }))
-      ? await programHelper.getProgramsWithCompletion(req.session.user._id, { publishedOnly: true })
+    const programs = Array.isArray(await programHelper.getProgramsWithCompletion(req.session.user._id, { publishedOnly: true, userRole: 'UnitUser' }))
+      ? await programHelper.getProgramsWithCompletion(req.session.user._id, { publishedOnly: true, userRole: 'UnitUser' })
       : [];
     const serializedPrograms = programs.map((p) => ({
       ...p,
@@ -159,6 +220,62 @@ router.get('/unit-dashboard', auth.requireLogin, auth.requireRole('UnitUser'), a
       user: req.session.user,
       layout: false,
       pageTitle: 'My Dashboard',
+      activePage: 'dashboard',
+      programs: serializedPrograms,
+      __programCount: serializedPrograms.length,
+      programsJson,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+/* ─── ZONE USER ROUTES ───────────────────────────────────────────────────── */
+
+router.get('/zone-dashboard', auth.requireLogin, auth.requireRole('ZoneUser'), async function (req, res, next) {
+  try {
+    const programs = Array.isArray(await programHelper.getProgramsWithCompletion(req.session.user._id, { publishedOnly: true, userRole: 'ZoneUser' }))
+      ? await programHelper.getProgramsWithCompletion(req.session.user._id, { publishedOnly: true, userRole: 'ZoneUser' })
+      : [];
+    const serializedPrograms = programs.map((p) => ({
+      ...p,
+      _id: p._id && p._id.toString ? p._id.toString() : p._id,
+      dueDate: p.dueDate ? new Date(p.dueDate).toISOString() : null,
+      completedAt: p.completedAt ? new Date(p.completedAt).toISOString() : null,
+    }));
+    const programsJson = JSON.stringify(serializedPrograms).replace(/</g, '\\u003c');
+    res.render('zone/dashboard', {
+      user: req.session.user,
+      layout: false,
+      pageTitle: 'Zone Dashboard',
+      activePage: 'dashboard',
+      programs: serializedPrograms,
+      __programCount: serializedPrograms.length,
+      programsJson,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+/* ─── CIRCLE USER ROUTES ───────────────────────────────────────────────────── */
+
+router.get('/circle-dashboard', auth.requireLogin, auth.requireRole('CircleUser'), async function (req, res, next) {
+  try {
+    const programs = Array.isArray(await programHelper.getProgramsWithCompletion(req.session.user._id, { publishedOnly: true, userRole: 'CircleUser' }))
+      ? await programHelper.getProgramsWithCompletion(req.session.user._id, { publishedOnly: true, userRole: 'CircleUser' })
+      : [];
+    const serializedPrograms = programs.map((p) => ({
+      ...p,
+      _id: p._id && p._id.toString ? p._id.toString() : p._id,
+      dueDate: p.dueDate ? new Date(p.dueDate).toISOString() : null,
+      completedAt: p.completedAt ? new Date(p.completedAt).toISOString() : null,
+    }));
+    const programsJson = JSON.stringify(serializedPrograms).replace(/</g, '\\u003c');
+    res.render('circle/dashboard', {
+      user: req.session.user,
+      layout: false,
+      pageTitle: 'Circle Dashboard',
       activePage: 'dashboard',
       programs: serializedPrograms,
       __programCount: serializedPrograms.length,

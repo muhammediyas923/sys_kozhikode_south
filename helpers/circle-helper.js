@@ -1,6 +1,7 @@
 const { ObjectId } = require('mongodb');
 const collections = require('../config/collections');
 const db = require('../config/connection');
+const bcrypt = require('bcrypt');
 
 function normalize(val) {
   return typeof val === 'string' ? val.trim() : '';
@@ -30,6 +31,10 @@ async function seedDefaultCircles() {
       }
       await database.collection(collections.CIRCLES_COLLECTION).insertOne({
         name: `Circle ${circleIndex}`,
+        code: '',
+        username: '',
+        password: '',
+        status: 'Active',
         zoneName: zone.name,
         zoneId: zone._id,
         units,
@@ -75,12 +80,29 @@ async function getCircleById(id) {
     .findOne({ _id: new ObjectId(id) });
 }
 
-async function createCircle(zoneId, zoneName, name) {
+async function createCircle(data) {
   const database = db.getDb();
+  const cleanName = normalize(data.name);
+  const cleanUsername = normalize(data.username);
+
+  if (cleanUsername) {
+    const existingUser = await database.collection(collections.CIRCLES_COLLECTION).findOne({ username: cleanUsername });
+    if (existingUser) throw new Error('Username already exists in Circles.');
+  }
+
+  let hashed = '';
+  if (data.password) {
+    hashed = await bcrypt.hash(normalize(data.password), 10);
+  }
+
   const result = await database.collection(collections.CIRCLES_COLLECTION).insertOne({
-    name: normalize(name),
-    zoneName: normalize(zoneName),
-    zoneId: new ObjectId(zoneId),
+    name: cleanName,
+    code: normalize(data.code),
+    username: cleanUsername,
+    password: hashed,
+    status: data.status || 'Active',
+    zoneName: normalize(data.zoneName),
+    zoneId: new ObjectId(data.zoneId),
     units: [],
     createdAt: new Date(),
   });
@@ -89,19 +111,34 @@ async function createCircle(zoneId, zoneName, name) {
 
 async function updateCircle(id, data) {
   const database = db.getDb();
-  const update = {
+  const updateDoc = {
     $set: {
       name: normalize(data.name),
+      code: normalize(data.code),
+      status: data.status || 'Active',
       updatedAt: new Date(),
     },
   };
+
   if (data.zoneId) {
-    update.$set.zoneId = new ObjectId(data.zoneId);
-    update.$set.zoneName = normalize(data.zoneName);
+    updateDoc.$set.zoneId = new ObjectId(data.zoneId);
+    updateDoc.$set.zoneName = normalize(data.zoneName);
   }
+
+  const cleanUsername = normalize(data.username);
+  if (cleanUsername) {
+    const existing = await database.collection(collections.CIRCLES_COLLECTION).findOne({ username: cleanUsername, _id: { $ne: new ObjectId(id) } });
+    if (existing) throw new Error('Username already exists in Circles.');
+    updateDoc.$set.username = cleanUsername;
+  }
+
+  if (data.password && normalize(data.password)) {
+    updateDoc.$set.password = await bcrypt.hash(normalize(data.password), 10);
+  }
+
   const result = await database
     .collection(collections.CIRCLES_COLLECTION)
-    .updateOne({ _id: new ObjectId(id) }, update);
+    .updateOne({ _id: new ObjectId(id) }, updateDoc);
   return result.modifiedCount > 0;
 }
 
@@ -128,6 +165,48 @@ async function getUnitsByCircleName(zoneName, circleName) {
   return circle ? circle.units || [] : [];
 }
 
+async function doCircleLogin({ zoneId, username, password }) {
+  const database = db.getDb();
+  const uname = normalize(username);
+  const pwd = normalize(password);
+
+  if (!zoneId || !uname || !pwd) {
+    return { status: false, message: 'Zone, username, and password are required.' };
+  }
+
+  const user = await database.collection(collections.CIRCLES_COLLECTION).findOne({ 
+    zoneId: new ObjectId(zoneId),
+    username: uname 
+  });
+
+  if (!user) {
+    return { status: false, message: 'Invalid credentials.' };
+  }
+  if (user.status !== 'Active') {
+    return { status: false, message: 'Your circle account is inactive.' };
+  }
+
+  const match = await bcrypt.compare(pwd, user.password || '');
+  if (!match) {
+    return { status: false, message: 'Invalid credentials.' };
+  }
+
+  return {
+    status: true,
+    user: {
+      _id: user._id.toString(),
+      unitName: user.name, // Mapping circle name to unitName for dashboard compatibility
+      username: user.username,
+      role: 'CircleUser',
+      zone: user.zoneName,
+      zoneId: user.zoneId.toString(),
+      circle: user.name,
+      circleId: user._id.toString(),
+      status: user.status,
+    },
+  };
+}
+
 module.exports = {
   seedDefaultCircles,
   getAllCircles,
@@ -139,4 +218,5 @@ module.exports = {
   deleteCircle,
   getUnitsByCircle,
   getUnitsByCircleName,
+  doCircleLogin
 };

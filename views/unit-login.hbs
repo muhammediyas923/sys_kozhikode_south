@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | SYS Kozhikode South</title>
+  <meta name="description" content="Secure login portal for SYS Kozhikode South Committee Management System.">
+  <meta name="robots" content="noindex, nofollow">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/stylesheets/variables.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#14533e">
+  <link rel="apple-touch-icon" href="/images/icons/icon-192x192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #0a2e1f 0%, #14533e 50%, #1a6b4f 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+    body::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%);
+      top: -200px; right: -150px;
+      border-radius: 50%;
+    }
+    body::after {
+      content: '';
+      position: absolute;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(255,200,100,0.06) 0%, transparent 70%);
+      bottom: -100px; left: -100px;
+      border-radius: 50%;
+    }
+    .login-wrapper {
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+      z-index: 1;
+    }
+    .login-card {
+      background: rgba(255,255,255,0.97);
+      border-radius: 20px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1);
+      overflow: hidden;
+    }
+    .login-header {
+      background: linear-gradient(135deg, #14533e, #1a6b4f);
+      padding: 2rem 2rem 1.5rem;
+      text-align: center;
+      color: white;
+    }
+    .login-logo {
+      width: 64px; height: 64px;
+      object-fit: contain;
+      margin-bottom: 0.75rem;
+      filter: brightness(0) invert(1);
+    }
+    .login-header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 0 0 0.25rem;
+    }
+    .login-header p {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      margin: 0;
+    }
+    .login-body {
+      padding: 2rem;
+    }
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 1.5rem;
+    }
+    .step-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #ddd;
+      transition: all 0.3s ease;
+    }
+    .step-dot.active { background: #14533e; transform: scale(1.3); }
+    .step-dot.done { background: #14533e; opacity: 0.5; }
+    .step-block { display: none; }
+    .step-block.active { display: block; animation: fadeSlideIn 0.3s ease; }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateX(10px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .step-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #14533e;
+      margin-bottom: 0.4rem;
+    }
+    .form-select, .form-control {
+      border-radius: 10px;
+      border: 1.5px solid #e0e0e0;
+      padding: 0.65rem 1rem;
+      font-size: 0.95rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-select:focus, .form-control:focus {
+      border-color: #14533e;
+      box-shadow: 0 0 0 3px rgba(20,83,62,0.12);
+    }
+    .btn-next, .btn-back {
+      border-radius: 10px;
+      font-weight: 600;
+      padding: 0.65rem 1.5rem;
+      transition: all 0.2s ease;
+    }
+    .btn-next {
+      background: linear-gradient(135deg, #14533e, #1a6b4f);
+      color: white;
+      border: none;
+    }
+    .btn-next:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(20,83,62,0.3); color: white; }
+    .btn-back {
+      background: transparent;
+      border: 1.5px solid #ccc;
+      color: #666;
+    }
+    .btn-back:hover { border-color: #14533e; color: #14533e; background: rgba(20,83,62,0.05); }
+    .btn-login {
+      width: 100%;
+      background: linear-gradient(135deg, #14533e, #1a6b4f);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      padding: 0.75rem;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+    }
+    .btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(20,83,62,0.35); color: white; }
+    .selected-path {
+      background: rgba(20,83,62,0.06);
+      border-radius: 10px;
+      padding: 0.6rem 1rem;
+      font-size: 0.85rem;
+      color: #14533e;
+      font-weight: 500;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .selected-path.visible { display: block; }
+    .error-alert {
+      background: #fff0f0;
+      border: 1px solid #f5c2c2;
+      color: #c0392b;
+      border-radius: 10px;
+      padding: 0.65rem 1rem;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    .password-wrapper { position: relative; }
+    .password-toggle {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: #999; cursor: pointer; padding: 4px;
+    }
+    .password-toggle:hover { color: #14533e; }
+    .login-footer {
+      text-align: center;
+      padding: 1rem 2rem 1.5rem;
+      font-size: 0.8rem;
+      color: #999;
+      border-top: 1px solid #f0f0f0;
+    }
+    .floating-particles {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .particle {
+      position: absolute;
+      width: 4px; height: 4px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+      animation: floatUp linear infinite;
+    }
+    @keyframes floatUp {
+      0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { transform: translateY(-20px) rotate(720deg); opacity: 0; }
+    }
+    @media (max-width: 480px) {
+      body { padding: 0.75rem; align-items: flex-start; padding-top: 2rem; }
+      .login-header { padding: 1.75rem 1.25rem 1.5rem; }
+      .login-header h1 { font-size: 1.2rem; }
+      .login-logo { width: 52px; height: 52px; }
+      .login-body { padding: 1.5rem 1.25rem; }
+      .login-footer { padding: 0.75rem 1.25rem 1.25rem; }
+      .form-control, .form-select { font-size: 1rem; padding: 0.7rem 1rem; }
+      .btn-login, .btn-next, .btn-back { padding: 0.85rem; font-size: 1rem; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="floating-particles" id="particles"></div>
+
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="login-header">
+        <img src="/images/Gemini_Generated_Image_41luhh41luhh41lu-removebg-preview.png" alt="SYS Logo" class="login-logo">
+        <h1>SYS Kozhikode South</h1>
+        <p>Committee Management System — Secure Login</p>
+      </div>
+
+      <div class="login-body">
+        <!-- Step indicators -->
+        <div class="step-indicator">
+          <div class="step-dot active" id="dot-1"></div>
+          <div class="step-dot" id="dot-2"></div>
+          <div class="step-dot" id="dot-3"></div>
+          <div class="step-dot" id="dot-4"></div>
+        </div>
+
+        {{#if loginError}}
+        <div class="error-alert">
+          <i class="ph ph-warning-circle me-1"></i> {{loginError}}
+        </div>
+        {{/if}}
+
+        <div id="error-container"></div>
+
+        <!-- Selected path breadcrumb -->
+        <div class="selected-path" id="selected-path"></div>
+
+        <form action="/unit-login" method="post" id="login-form">
+          <input type="hidden" name="zone" id="input-zone">
+          <input type="hidden" name="circle" id="input-circle">
+
+          <!-- Step 1: Select Zone -->
+          <div class="step-block active" id="step-1">
+            <div class="step-label"><i class="ph ph-map-pin me-1"></i> Step 1 of 4 — Select Zone</div>
+            <div class="mb-3">
+              <select class="form-select" id="zone-select">
+                <option value="">Loading zones...</option>
+              </select>
+            </div>
+            <div class="d-flex justify-content-end">
+              <button type="button" class="btn btn-next" id="btn-zone-next">
+                Next <i class="ph ph-arrow-right ms-1"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 2: Select Circle -->
+          <div class="step-block" id="step-2">
+            <div class="step-label"><i class="ph ph-circles-three me-1"></i> Step 2 of 4 — Select Circle</div>
+            <div class="mb-3">
+              <select class="form-select" id="circle-select">
+                <option value="">Select circle...</option>
+              </select>
+            </div>
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn btn-back" id="btn-circle-back">
+                <i class="ph ph-arrow-left me-1"></i> Back
+              </button>
+              <button type="button" class="btn btn-next" id="btn-circle-next">
+                Next <i class="ph ph-arrow-right ms-1"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 3: Unit Name -->
+          <div class="step-block" id="step-3">
+            <div class="step-label"><i class="ph ph-buildings me-1"></i> Step 3 of 4 — Enter Unit Name</div>
+            <div class="mb-3">
+              <input type="text" class="form-control" id="username-input" name="username"
+                placeholder="Enter your unit name / username" autocomplete="username">
+            </div>
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn btn-back" id="btn-unit-back">
+                <i class="ph ph-arrow-left me-1"></i> Back
+              </button>
+              <button type="button" class="btn btn-next" id="btn-unit-next">
+                Next <i class="ph ph-arrow-right ms-1"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 4: Password -->
+          <div class="step-block" id="step-4">
+            <div class="step-label"><i class="ph ph-lock-key me-1"></i> Step 4 of 4 — Enter Password</div>
+            <div class="mb-4">
+              <div class="password-wrapper">
+                <input type="password" class="form-control" id="password-input" name="password"
+                  placeholder="Enter Password" autocomplete="current-password">
+                <button type="button" class="password-toggle" id="toggle-pw" aria-label="Toggle password">
+                  <i class="ph ph-eye" id="pw-icon"></i>
+                </button>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center gap-2">
+              <button type="button" class="btn btn-back" id="btn-pw-back">
+                <i class="ph ph-arrow-left me-1"></i> Back
+              </button>
+              <button type="submit" class="btn btn-login flex-grow-1" id="btn-submit">
+                <i class="ph ph-sign-in me-1"></i> Login
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="login-footer">
+        <a href="/" class="btn btn-outline-light me-2" style="border-radius:8px; padding:6px 10px; font-weight:600; background:rgba(255,255,255,0.03); color:inherit;">Home</a>
+        &copy; 2026 Sunni Yuvajana Sangham (SYS) Kerala &mdash; All rights reserved
+      </div>
+    </div>
+  </div>
+
+  <script src="/javascripts/pwa.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Floating particles
+    const container = document.getElementById('particles');
+    for (let i = 0; i < 20; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDuration = (8 + Math.random() * 12) + 's';
+      p.style.animationDelay = (Math.random() * 8) + 's';
+      p.style.width = p.style.height = (3 + Math.random() * 5) + 'px';
+      container.appendChild(p);
+    }
+
+    let selectedZone = '';
+    let selectedCircle = '';
+    let currentStep = 1;
+
+    const steps = document.querySelectorAll('.step-block');
+    const dots = document.querySelectorAll('.step-dot');
+    const selectedPathEl = document.getElementById('selected-path');
+    const errorContainer = document.getElementById('error-container');
+
+    function goToStep(n) {
+      steps.forEach((s, i) => s.classList.toggle('active', i + 1 === n));
+      dots.forEach((d, i) => {
+        d.classList.toggle('active', i + 1 === n);
+        d.classList.toggle('done', i + 1 < n);
+      });
+      currentStep = n;
+      updateBreadcrumb();
+    }
+
+    function showError(msg) {
+      errorContainer.innerHTML = `<div class="error-alert"><i class="ph ph-warning-circle me-1"></i>${msg}</div>`;
+      setTimeout(() => errorContainer.innerHTML = '', 4000);
+    }
+
+    function updateBreadcrumb() {
+      const parts = [];
+      if (selectedZone) parts.push(`<i class="ph ph-map-pin me-1"></i>${selectedZone}`);
+      if (selectedCircle) parts.push(`<i class="ph ph-circles-three me-1"></i>${selectedCircle}`);
+      if (parts.length) {
+        selectedPathEl.innerHTML = parts.join(' <span class="mx-1 opacity-50">/</span> ');
+        selectedPathEl.classList.add('visible');
+      } else {
+        selectedPathEl.classList.remove('visible');
+      }
+    }
+
+    async function loadZones() {
+      try {
+        const resp = await fetch('/api/zones');
+        const data = await resp.json();
+        const sel = document.getElementById('zone-select');
+        if (data.success && data.zones.length) {
+          sel.innerHTML = '<option value="">— Select Zone —</option>' +
+            data.zones.map(z => `<option value="${z.name}">${z.name}</option>`).join('');
+        } else {
+          sel.innerHTML = '<option value="">No zones available</option>';
+        }
+      } catch (e) {
+        document.getElementById('zone-select').innerHTML = '<option value="">Failed to load zones</option>';
+      }
+    }
+
+    async function loadCircles(zoneName) {
+      try {
+        const resp = await fetch(`/api/circles?zoneName=${encodeURIComponent(zoneName)}`);
+        const data = await resp.json();
+        const sel = document.getElementById('circle-select');
+        if (data.success && data.circles.length) {
+          sel.innerHTML = '<option value="">— Select Circle —</option>' +
+            data.circles.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+        } else {
+          sel.innerHTML = '<option value="">No circles available</option>';
+        }
+      } catch (e) {
+        document.getElementById('circle-select').innerHTML = '<option value="">Failed to load circles</option>';
+      }
+    }
+
+    // Zone next
+    document.getElementById('btn-zone-next').addEventListener('click', () => {
+      const val = document.getElementById('zone-select').value;
+      if (!val) { showError('Please select a zone.'); return; }
+      selectedZone = val;
+      document.getElementById('input-zone').value = val;
+      loadCircles(val);
+      goToStep(2);
+    });
+
+    // Circle back/next
+    document.getElementById('btn-circle-back').addEventListener('click', () => goToStep(1));
+    document.getElementById('btn-circle-next').addEventListener('click', () => {
+      const val = document.getElementById('circle-select').value;
+      if (!val) { showError('Please select a circle.'); return; }
+      selectedCircle = val;
+      document.getElementById('input-circle').value = val;
+      goToStep(3);
+    });
+
+    // Unit back/next
+    document.getElementById('btn-unit-back').addEventListener('click', () => goToStep(2));
+    document.getElementById('btn-unit-next').addEventListener('click', () => {
+      const val = document.getElementById('username-input').value.trim();
+      if (!val) { showError('Please enter your unit name or username.'); return; }
+      goToStep(4);
+    });
+
+    // Password back
+    document.getElementById('btn-pw-back').addEventListener('click', () => goToStep(3));
+
+    // Password toggle
+    document.getElementById('toggle-pw').addEventListener('click', () => {
+      const inp = document.getElementById('password-input');
+      const icon = document.getElementById('pw-icon');
+      const show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      icon.className = show ? 'ph ph-eye-slash' : 'ph ph-eye';
+    });
+
+    // Handle Enter key for navigation
+    document.getElementById('login-form').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
+        e.preventDefault();
+        if (currentStep === 1) document.getElementById('btn-zone-next').click();
+        else if (currentStep === 2) document.getElementById('btn-circle-next').click();
+        else if (currentStep === 3) document.getElementById('btn-unit-next').click();
+        else if (currentStep === 4) {
+          const pw = document.getElementById('password-input').value;
+          if (pw) { document.getElementById('login-form').submit(); }
+          else { showError('Please enter your password.'); }
+        }
+      }
+    });
+
+    // Form submit validation
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      const pw = document.getElementById('password-input').value;
+      if (!pw) { e.preventDefault(); showError('Please enter your password.'); }
+    });
+
+    // Init
+    loadZones();
+  </script>
+</body>
+</html>

@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderProgramsTable() {
     const tbody = document.getElementById('programs-table-body');
     if (!programs.length) {
-      tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-muted">No programs created yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No programs created yet.</td></tr>';
       return;
     }
     tbody.innerHTML = programs.map((p, index) => {
@@ -45,11 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <tr>
           <td>${index + 1}</td>
           <td><strong>${p.title}</strong></td>
-          <td><div class="text-truncate" style="max-width:180px;" title="${p.description || ''}">${p.description || '—'}</div></td>
-          <td><span class="ds-badge ds-badge-primary">${p.requiredCount || 1}×</span></td>
-          <td><span class="ds-badge" style="background:#e0f2fe; color:#0369a1;"><i class="ph ph-users"></i> ${p.totalParticipants || 0}</span></td>
-          <td>${p.dueDate ? formatDate(p.dueDate) : '<span class="text-muted">—</span>'}</td>
-          <td>${attachmentsList}</td>
           <td>${statusBadge}</td>
           <td>${formatDate(p.createdAt)}</td>
           <td>
@@ -83,6 +78,18 @@ document.addEventListener('DOMContentLoaded', () => {
               document.getElementById('prog-desc').value = p.description || '';
               document.getElementById('prog-due').value = p.dueDate ? p.dueDate.substring(0, 10) : '';
               document.getElementById('prog-required-count').value = p.requiredCount || 1;
+
+              document.querySelectorAll('input[name="assignTo"]').forEach(cb => cb.checked = false);
+              
+              if (p.assignTo && p.assignTo.length) {
+                p.assignTo.forEach(role => {
+                  const cb = document.querySelector(`input[name="assignTo"][value="${role}"]`);
+                  if (cb) cb.checked = true;
+                });
+              } else {
+                const cb = document.querySelector(`input[name="assignTo"][value="UnitUser"]`);
+                if (cb) cb.checked = true;
+              }
 
               selectedFiles = [];
               renderSelectedFiles();
@@ -182,11 +189,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Add program button
   document.getElementById('add-program-btn')?.addEventListener('click', () => {
     editingProgramId = null;
     selectedFiles = [];
     document.getElementById('program-form').reset();
+    document.getElementById('assign-error').classList.add('d-none');
+    document.querySelectorAll('input[name="assignTo"]').forEach(cb => cb.checked = false);
+    document.querySelector('input[name="assignTo"][value="UnitUser"]').checked = true;
     renderSelectedFiles();
     document.getElementById('program-modal-title').textContent = 'Create Program';
     document.getElementById('program-modal-error').classList.add('d-none');
@@ -210,12 +219,24 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    const requiredCount = document.getElementById('prog-required-count')?.value || 1;
+    
+    const assignTo = Array.from(document.querySelectorAll('input[name="assignTo"]:checked')).map(cb => cb.value);
+    
+    if (assignTo.length === 0) {
+      document.getElementById('assign-error').classList.remove('d-none');
+      return;
+    } else {
+      document.getElementById('assign-error').classList.add('d-none');
+    }
+
     const formData = new FormData();
     formData.append('title', title);
     formData.append('description', description);
     if (dueDate) formData.append('dueDate', dueDate);
-    const requiredCount = document.getElementById('prog-required-count')?.value || 1;
     formData.append('requiredCount', requiredCount);
+    
+    assignTo.forEach(role => formData.append('assignTo', role));
 
     selectedFiles.forEach(file => {
       formData.append('attachments', file);
@@ -280,28 +301,70 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!data.success) throw new Error(data.message || 'Failed to load');
 
       const completions = data.completions || [];
+      const groupedStats = data.groupedStats || {};
       const prog = data.program || {};
-      const requiredCount = prog.requiredCount || 1;
+      const assignTo = prog.assignTo || ['UnitUser'];
+
+      let html = '';
+      
+      const roleMap = {
+        'UnitUser': 'Unit Users',
+        'CircleUser': 'Circle Users',
+        'ZoneUser': 'Zone Users'
+      };
+
+      for (const role of assignTo) {
+        const stats = groupedStats[role] || { target: 0, completed: 0, remaining: 0, progress: 0, status: 'Pending' };
+        
+        html += `
+          <div class="ds-card mb-4" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: none;">
+            <div class="ds-card-header bg-light d-flex justify-content-between align-items-center p-3">
+              <h5 class="mb-0 fw-bold" style="color: #1e293b;"><i class="ph ph-users"></i> ${roleMap[role] || role}</h5>
+              <span class="ds-badge ds-badge-${stats.status === 'Completed' ? 'success' : 'primary'}">${stats.status}</span>
+            </div>
+            <div class="ds-card-body p-3">
+              <div class="d-flex justify-content-between mb-2">
+                <span class="ds-text-sm fw-medium">Progress</span>
+                <span class="ds-text-sm fw-bold">${stats.progress}%</span>
+              </div>
+              <div class="ds-progress-bar mb-3" style="height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                <div class="ds-progress-fill" style="width: ${stats.progress}%; height: 100%; background: var(--color-primary);"></div>
+              </div>
+              
+              <div class="row text-center" style="font-size: 0.85rem;">
+                <div class="col-4">
+                  <div class="text-muted mb-1">Target</div>
+                  <div class="fw-bold" style="font-size: 1.1rem; color: #334155;">${stats.target}</div>
+                </div>
+                <div class="col-4 border-start border-end">
+                  <div class="text-muted mb-1">Completed</div>
+                  <div class="fw-bold text-success" style="font-size: 1.1rem;">${stats.completed}</div>
+                </div>
+                <div class="col-4">
+                  <div class="text-muted mb-1">Remaining</div>
+                  <div class="fw-bold text-danger" style="font-size: 1.1rem;">${stats.remaining}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
 
       if (!completions.length) {
-        document.getElementById('completions-modal-body').innerHTML =
-          '<div class="ds-empty" style="padding:40px;"><i class="ph ph-users ds-empty-icon"></i><h3>No completions yet</h3><p>No users have submitted a completion for this program.</p></div>';
+        html += '<div class="ds-empty mt-4" style="padding:40px;"><i class="ph ph-users ds-empty-icon"></i><h3>No completions yet</h3><p>No users have submitted a completion for this program.</p></div>';
+        document.getElementById('completions-modal-body').innerHTML = html;
         return;
       }
 
-      document.getElementById('completions-modal-body').innerHTML = `
-        <p class="text-muted mb-3" style="font-size:0.875rem;">
-          <strong>${completions.length}</strong> user${completions.length !== 1 ? 's' : ''} completed · Required: <strong>${requiredCount}×</strong>
-        </p>
-        <div class="ds-table-wrapper" style="max-height:60vh; overflow-y:auto; border-bottom:1px solid #e2e8f0;">
+      html += `
+        <hr class="my-4">
+        <h5 class="mb-3 fw-bold text-dark">Detailed Completions</h5>
+        <div class="ds-table-wrapper" style="max-height:40vh; overflow-y:auto; border-bottom:1px solid #e2e8f0;">
           <table class="ds-table" style="vertical-align:middle; margin-bottom:0;">
             <thead>
               <tr>
-                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Unit Name</th>
-                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Zone</th>
-                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Circle</th>
-                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Count</th>
-                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Participants</th>
+                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">User Role</th>
+                <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">User Info</th>
                 <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Progress</th>
                 <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Date</th>
                 <th style="vertical-align:middle; position:sticky; top:0; background-color:#f4f6f8; z-index:10; box-shadow:0 1px 2px rgba(0,0,0,0.05);">Notes</th>
@@ -310,19 +373,23 @@ document.addEventListener('DOMContentLoaded', () => {
             </thead>
             <tbody>
               ${completions.map(c => {
+        const requiredCount = prog.requiredCount || 1;
         const count = c.completionCount || 1;
         const pct = Math.min(100, Math.round((count / requiredCount) * 100));
         const images = Array.isArray(c.images) ? c.images : [];
+        
+        // Determine role display logic based on available data
+        let roleDisplay = '<span class="ds-badge ds-badge-muted">Unit</span>';
+        if (!c.unitName && c.circle) roleDisplay = '<span class="ds-badge ds-badge-primary">Circle</span>';
+        if (!c.unitName && !c.circle && c.zone) roleDisplay = '<span class="ds-badge ds-badge-success">Zone</span>';
+        
         return `
                   <tr style="vertical-align:middle;">
+                    <td style="vertical-align:middle;">${roleDisplay}</td>
                     <td style="vertical-align:middle;">
-                      <strong>${c.unitName || '—'}</strong>
-                      ${c.username ? `<span class="text-muted" style="font-size:0.78rem; margin-left:4px;">(${c.username})</span>` : ''}
+                      <strong>${c.unitName || c.circle || c.zone || c.username}</strong>
+                      ${c.username ? `<br><span class="text-muted" style="font-size:0.78rem;">(${c.username})</span>` : ''}
                     </td>
-                    <td style="vertical-align:middle;">${c.zone || '—'}</td>
-                    <td style="vertical-align:middle;">${c.circle || '—'}</td>
-                    <td style="vertical-align:middle;"><span class="ds-badge ds-badge-success">${count}×</span></td>
-                    <td style="vertical-align:middle;"><span class="ds-badge" style="background:#e0f2fe; color:#0369a1;"><i class="ph ph-users"></i> ${c.participantsCount || 0}</span></td>
                     <td style="vertical-align:middle;">
                       <div style="display:flex; align-items:center; gap:8px;">
                         <div style="flex:1; height:8px; background:#e2e8f0; border-radius:999px; min-width:60px;">
@@ -345,6 +412,8 @@ document.addEventListener('DOMContentLoaded', () => {
           </table>
         </div>
       `;
+      
+      document.getElementById('completions-modal-body').innerHTML = html;
     } catch (err) {
       document.getElementById('completions-modal-body').innerHTML =
         `<div class="text-danger p-3">Failed to load completions: ${err.message}</div>`;

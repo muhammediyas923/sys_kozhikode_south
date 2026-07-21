@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circles | SYS Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/stylesheets/variables.css">
+  <link rel="stylesheet" href="/stylesheets/dashboard.css?v=2">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#14533e">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body class="dashboard-body">
+  <div class="ds-sidebar-overlay" id="sidebar-overlay"></div>
+  <aside class="ds-sidebar" id="sidebar">
+    <div class="ds-sidebar-brand">
+      <img src="/images/Gemini_Generated_Image_41luhh41luhh41lu-removebg-preview.png" alt="SYS" class="ds-sidebar-logo">
+      <div>
+        <div class="ds-sidebar-title">SYS Admin</div>
+        <div class="ds-sidebar-subtitle">Kozhikode South</div>
+      </div>
+    </div>
+    <nav class="ds-sidebar-nav">
+      <div class="ds-nav-section-title">Overview</div>
+      <a href="/super-admin" class="ds-nav-link"><i class="ph ph-squares-four"></i> Dashboard</a>
+      <div class="ds-nav-section-title">Management</div>
+      <a href="/super-admin/zones" class="ds-nav-link"><i class="ph ph-map-pin"></i> Zones</a>
+      <a href="/super-admin/circles" class="ds-nav-link active"><i class="ph ph-circles-three"></i> Circles</a>
+      <a href="/super-admin/users" class="ds-nav-link"><i class="ph ph-users"></i> Unit Users</a>
+      <a href="/super-admin/programs" class="ds-nav-link"><i class="ph ph-clipboard-text"></i> Programs</a>
+      <a href="/super-admin/profile" class="ds-nav-link"><i class="ph ph-gear"></i> Account Settings</a>
+      <div class="ds-nav-section-title">Analytics</div>
+      <a href="/super-admin/reports" class="ds-nav-link"><i class="ph ph-chart-bar"></i> Reports</a>
+    </nav>
+    <div class="ds-sidebar-footer">
+      <div class="ds-user-widget">
+        <div class="ds-user-avatar">SA</div>
+        <div class="ds-user-info">
+          <div class="ds-user-name">{{user.unitName}}</div>
+          <div class="ds-user-role">Super Admin</div>
+        </div>
+        <a href="/logout" class="ds-logout-btn" title="Logout"><i class="ph ph-sign-out"></i></a>
+      </div>
+    </div>
+  </aside>
+
+  <div class="ds-main">
+    <header class="ds-topbar">
+      <button class="ds-topbar-menu-btn" id="sidebar-toggle"><i class="ph ph-list"></i></button>
+      <div class="ds-topbar-title">Circles</div>
+    </header>
+
+    <main class="ds-content">
+      <div class="ds-page-header">
+        <h1>Circle Management</h1>
+        <p>Create, edit, and manage circles within zones.</p>
+      </div>
+
+      <div class="ds-filter-bar">
+        <button class="ds-btn ds-btn-primary ms-auto" id="add-circle-btn"><i class="ph ph-plus"></i> Add Circle</button>
+      </div>
+
+      <div class="ds-card">
+        <div class="ds-card-header">
+          <h3 class="ds-card-title"><i class="ph ph-circles-three"></i> Circles <span class="ds-badge ds-badge-primary ms-2" id="circle-count-badge">0</span></h3>
+        </div>
+        <div class="ds-card-body p-0">
+          <div class="ds-table-wrapper">
+            <table class="ds-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Zone Name</th>
+                  <th>Circle Name</th>
+                  <th>Code</th>
+                  <th>Username</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="circles-table-body">
+                <tr><td colspan="7"><div class="ds-loading-overlay"><div class="ds-spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Circle Modal -->
+  <div class="ds-modal-backdrop" id="circle-modal">
+    <div class="ds-modal" style="max-width:500px;">
+      <div class="ds-modal-header">
+        <h4 class="ds-modal-title" id="circle-modal-title">Add Circle</h4>
+        <button class="ds-modal-close" id="circle-modal-close"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="ds-modal-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <div class="ds-form-group">
+              <label class="ds-form-label" for="circle-zone">Zone <span class="text-danger">*</span></label>
+              <select class="ds-form-control ds-form-select" id="circle-zone">
+                <option value="">Select zone...</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="ds-form-group">
+              <label class="ds-form-label" for="circle-name">Circle Name <span class="text-danger">*</span></label>
+              <input type="text" class="ds-form-control" id="circle-name" placeholder="e.g. Circle 1">
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="ds-form-group">
+              <label class="ds-form-label" for="circle-code">Circle Code</label>
+              <input type="text" class="ds-form-control" id="circle-code" placeholder="e.g. C01">
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="ds-form-group">
+              <label class="ds-form-label" for="circle-username">Username <span class="text-danger">*</span></label>
+              <input type="text" class="ds-form-control" id="circle-username" placeholder="Login Username">
+            </div>
+          </div>
+          <div class="col-12" id="circle-password-group">
+            <div class="ds-form-group">
+              <label class="ds-form-label" for="circle-password">Password <span class="text-danger" id="circle-pw-req">*</span></label>
+              <input type="text" class="ds-form-control" id="circle-password" placeholder="Set password">
+              <small class="text-muted" id="circle-pw-hint"></small>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="ds-form-group">
+              <label class="ds-form-label" for="circle-status">Status</label>
+              <select class="ds-form-control ds-form-select" id="circle-status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="circle-modal-error" class="text-danger small mt-2 d-none"></div>
+      </div>
+      <div class="ds-modal-footer">
+        <button class="ds-btn ds-btn-outline" id="circle-modal-cancel">Cancel</button>
+        <button class="ds-btn ds-btn-primary" id="circle-modal-save"><i class="ph ph-floppy-disk"></i> Save Circle</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ds-toast-container" id="toast-container"></div>
+  <script src="/javascripts/pwa.js"></script>
+  <script src="/javascripts/notifications.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggle = document.getElementById('sidebar-toggle');
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      if (toggle) {
+        toggle.addEventListener('click', () => {
+          sidebar.classList.toggle('active');
+          overlay.classList.toggle('active');
+        });
+      }
+      if (overlay) {
+        overlay.addEventListener('click', () => {
+          sidebar.classList.remove('active');
+          overlay.classList.remove('active');
+        });
+      }
+
+      loadZonesForSelect();
+      loadCircles();
+      
+      const modal = document.getElementById('circle-modal');
+      let editingId = null;
+
+      async function loadZonesForSelect() {
+        try {
+          const res = await fetch('/api/admin/zones');
+          const data = await res.json();
+          if (data.success) {
+            const select = document.getElementById('circle-zone');
+            select.innerHTML = '<option value="">Select zone...</option>' + 
+              data.zones.map(z => `<option value="${z._id}" data-name="${z.name}">${z.name}</option>`).join('');
+          }
+        } catch(e) {}
+      }
+
+      document.getElementById('add-circle-btn').addEventListener('click', () => {
+        editingId = null;
+        document.getElementById('circle-modal-title').textContent = 'Add Circle';
+        document.getElementById('circle-zone').value = '';
+        document.getElementById('circle-name').value = '';
+        document.getElementById('circle-code').value = '';
+        document.getElementById('circle-username').value = '';
+        document.getElementById('circle-password').value = '';
+        document.getElementById('circle-status').value = 'Active';
+        document.getElementById('circle-pw-req').style.display = 'inline';
+        document.getElementById('circle-pw-hint').textContent = '';
+        document.getElementById('circle-modal-error').classList.add('d-none');
+        modal.classList.add('open');
+      });
+
+      const closeModal = () => modal.classList.remove('open');
+      document.getElementById('circle-modal-close').addEventListener('click', closeModal);
+      document.getElementById('circle-modal-cancel').addEventListener('click', closeModal);
+
+      document.getElementById('circle-modal-save').addEventListener('click', async () => {
+        const zoneSelect = document.getElementById('circle-zone');
+        const zoneId = zoneSelect.value;
+        const zoneName = zoneId ? zoneSelect.options[zoneSelect.selectedIndex].dataset.name : '';
+        const name = document.getElementById('circle-name').value.trim();
+        const code = document.getElementById('circle-code').value.trim();
+        const username = document.getElementById('circle-username').value.trim();
+        const password = document.getElementById('circle-password').value.trim();
+        const status = document.getElementById('circle-status').value;
+        const errEl = document.getElementById('circle-modal-error');
+        
+        if (!zoneId || !name || !username || (!editingId && !password)) {
+          errEl.textContent = 'Zone, name, username, and password are required.';
+          errEl.classList.remove('d-none');
+          return;
+        }
+
+        const btn = document.getElementById('circle-modal-save');
+        btn.disabled = true;
+        btn.innerHTML = '<div class="ds-spinner" style="width:1rem;height:1rem;"></div> Saving...';
+
+        try {
+          const url = editingId ? `/api/admin/circles/${editingId}` : '/api/admin/circles';
+          const method = editingId ? 'PUT' : 'POST';
+          const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ zoneId, zoneName, name, code, username, password, status })
+          });
+          const data = await res.json();
+          if (data.success) {
+            closeModal();
+            loadCircles();
+          } else {
+            errEl.textContent = data.message || 'Error saving circle.';
+            errEl.classList.remove('d-none');
+          }
+        } catch (err) {
+          errEl.textContent = 'Network error.';
+          errEl.classList.remove('d-none');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="ph ph-floppy-disk"></i> Save Circle';
+        }
+      });
+
+      async function loadCircles() {
+        const tbody = document.getElementById('circles-table-body');
+        try {
+          const res = await fetch('/api/admin/circles');
+          const data = await res.json();
+          if (data.success) {
+            document.getElementById('circle-count-badge').textContent = data.circles.length;
+            if (data.circles.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No circles found.</td></tr>';
+              return;
+            }
+            tbody.innerHTML = data.circles.map((c, i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td>${c.zoneName}</td>
+                <td><strong>${c.name}</strong></td>
+                <td>${c.code || '-'}</td>
+                <td>${c.username || '-'}</td>
+                <td><span class="ds-badge ${c.status === 'Active' ? 'ds-badge-success' : 'ds-badge-secondary'}">${c.status || 'Active'}</span></td>
+                <td>
+                  <div class="d-flex gap-2">
+                    <button class="ds-btn ds-btn-outline ds-btn-sm edit-btn" data-id="${c._id}" data-zone="${c.zoneId}" data-name="${c.name}" data-code="${c.code||''}" data-username="${c.username||''}" data-status="${c.status||'Active'}">
+                      <i class="ph ph-pencil-simple"></i> Edit
+                    </button>
+                    <button class="ds-btn ds-btn-outline ds-btn-sm text-danger delete-btn" data-id="${c._id}" data-name="${c.name}">
+                      <i class="ph ph-trash"></i> Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `).join('');
+
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+              btn.addEventListener('click', (e) => {
+                const tr = e.target.closest('button');
+                editingId = tr.dataset.id;
+                document.getElementById('circle-modal-title').textContent = 'Edit Circle';
+                document.getElementById('circle-zone').value = tr.dataset.zone;
+                document.getElementById('circle-name').value = tr.dataset.name;
+                document.getElementById('circle-code').value = tr.dataset.code;
+                document.getElementById('circle-username').value = tr.dataset.username;
+                document.getElementById('circle-password').value = '';
+                document.getElementById('circle-status').value = tr.dataset.status;
+                document.getElementById('circle-pw-req').style.display = 'none';
+                document.getElementById('circle-pw-hint').textContent = 'Leave blank to keep current password.';
+                document.getElementById('circle-modal-error').classList.add('d-none');
+                modal.classList.add('open');
+              });
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+              btn.addEventListener('click', async (e) => {
+                const tr = e.target.closest('button');
+                if (confirm(`Delete circle "${tr.dataset.name}"?`)) {
+                  try {
+                    await fetch(`/api/admin/circles/${tr.dataset.id}`, { method: 'DELETE' });
+                    loadCircles();
+                  } catch (err) { alert('Error deleting circle'); }
+                }
+              });
+            });
+          }
+        } catch (err) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-danger">Failed to load circles.</td></tr>';
+        }
+      }
+    });
+  </script>
+</body>
+</html>

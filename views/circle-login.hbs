@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circle Login | SYS Kozhikode South</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #0a2e1f 0%, #14533e 50%, #1a6b4f 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .login-wrapper {
+      width: 100%;
+      max-width: 480px;
+    }
+    .login-card {
+      background: rgba(255,255,255,0.97);
+      border-radius: 20px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .login-header {
+      background: linear-gradient(135deg, #14533e, #1a6b4f);
+      padding: 2rem;
+      text-align: center;
+      color: white;
+    }
+    .login-logo {
+      width: 64px; height: 64px;
+      object-fit: contain;
+      margin-bottom: 0.75rem;
+      filter: brightness(0) invert(1);
+    }
+    .login-body {
+      padding: 2rem;
+    }
+    .form-control, .form-select {
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+    }
+    .btn-login {
+      width: 100%;
+      background: linear-gradient(135deg, #14533e, #1a6b4f);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0.75rem;
+      font-weight: 600;
+    }
+    .btn-login:hover { color: white; opacity: 0.9; }
+    .error-alert {
+      background: #fff0f0;
+      color: #c0392b;
+      padding: 0.75rem;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="login-header">
+        <img src="/images/Gemini_Generated_Image_41luhh41luhh41lu-removebg-preview.png" alt="SYS Logo" class="login-logo">
+        <h1 style="font-size:1.4rem; font-weight:700;">Circle Portal</h1>
+        <p style="margin:0; opacity:0.8;">Secure Login for Circle Users</p>
+      </div>
+      <div class="login-body">
+        {{#if loginError}}
+        <div class="error-alert">
+          <i class="ph ph-warning-circle"></i> {{loginError}}
+        </div>
+        {{/if}}
+        <form action="/circle-login" method="post">
+          <div class="mb-3">
+            <label class="form-label text-muted fw-semibold" style="font-size:0.85rem;">Select Zone</label>
+            <select class="form-select" name="zoneId" id="zone-select" required>
+              <option value="">Loading zones...</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-muted fw-semibold" style="font-size:0.85rem;">Username</label>
+            <input type="text" class="form-control" name="username" placeholder="Enter Circle Username" required>
+          </div>
+          <div class="mb-4">
+            <label class="form-label text-muted fw-semibold" style="font-size:0.85rem;">Password</label>
+            <input type="password" class="form-control" name="password" placeholder="Enter Password" required>
+          </div>
+          <button type="submit" class="btn btn-login">Login as Circle</button>
+        </form>
+        <div class="text-center mt-4">
+          <a href="/user-selection" style="color:#6b7280; text-decoration:none; font-size:0.85rem;"><i class="ph ph-arrow-left"></i> Back to Selection</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadZones() {
+      try {
+        const resp = await fetch('/api/zones');
+        const data = await resp.json();
+        const sel = document.getElementById('zone-select');
+        if (data.success && data.zones.length) {
+          sel.innerHTML = '<option value="">— Select Zone —</option>' +
+            data.zones.map(z => `<option value="${z._id}">${z.name}</option>`).join('');
+        } else {
+          sel.innerHTML = '<option value="">No zones available</option>';
+        }
+      } catch (e) {
+        document.getElementById('zone-select').innerHTML = '<option value="">Failed to load zones</option>';
+      }
+    }
+    loadZones();
+  </script>
+</body>
+</html>

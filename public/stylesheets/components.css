@@ -1452,3 +1452,12 @@
     min-height: 44px;
   }
 }
+/* Checkbox Cards */
+.ds-checkbox-card { cursor: pointer; user-select: none; flex: 1; }
+.ds-checkbox-card input[type="checkbox"] { display: none; }
+.ds-checkbox-card-content { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 16px; border: 1.5px solid #e2e8f0; border-radius: 8px; transition: all 0.2s ease; background-color: #fff; color: #475569; }
+.ds-checkbox-card-content i { font-size: 24px; color: #64748b; }
+.ds-checkbox-card-content span { font-weight: 500; font-size: 0.9rem; }
+.ds-checkbox-card:hover .ds-checkbox-card-content { border-color: var(--color-primary-light); background-color: #f8fafc; }
+.ds-checkbox-card input[type="checkbox"]:checked + .ds-checkbox-card-content { border-color: var(--color-primary); background-color: rgba(var(--color-primary-rgb), 0.05); color: var(--color-primary-dark); box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.1); }
+.ds-checkbox-card input[type="checkbox"]:checked + .ds-checkbox-card-content i { color: var(--color-primary); }

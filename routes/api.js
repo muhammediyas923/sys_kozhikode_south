@@ -73,9 +73,9 @@ router.get('/admin/zones', auth.requireApiLogin, auth.requireApiRole('SuperAdmin
 
 router.post('/admin/zones', auth.requireApiLogin, auth.requireApiRole('SuperAdmin'), async (req, res, next) => {
   try {
-    const { name } = req.body;
-    if (!name) return res.status(400).json({ success: false, message: 'Zone name is required.' });
-    const id = await zoneHelper.createZone(name);
+    const { name, code, username, password, status } = req.body;
+    if (!name || !username || !password) return res.status(400).json({ success: false, message: 'Name, username, and password are required.' });
+    const id = await zoneHelper.createZone({ name, code, username, password, status });
     return res.json({ success: true, id });
   } catch (error) {
     if (error.message.includes('already exists')) return res.status(409).json({ success: false, message: error.message });
@@ -85,7 +85,7 @@ router.post('/admin/zones', auth.requireApiLogin, auth.requireApiRole('SuperAdmi
 
 router.put('/admin/zones/:id', auth.requireApiLogin, auth.requireApiRole('SuperAdmin'), async (req, res, next) => {
   try {
-    const updated = await zoneHelper.updateZone(req.params.id, req.body.name);
+    const updated = await zoneHelper.updateZone(req.params.id, req.body);
     return res.json({ success: updated });
   } catch (error) { return next(error); }
 });
@@ -108,9 +108,9 @@ router.get('/admin/circles', auth.requireApiLogin, auth.requireApiRole('SuperAdm
 
 router.post('/admin/circles', auth.requireApiLogin, auth.requireApiRole('SuperAdmin'), async (req, res, next) => {
   try {
-    const { zoneId, zoneName, name } = req.body;
-    if (!zoneId || !name) return res.status(400).json({ success: false, message: 'Zone and circle name are required.' });
-    const id = await circleHelper.createCircle(zoneId, zoneName, name);
+    const { zoneId, zoneName, name, code, username, password, status } = req.body;
+    if (!zoneId || !name || !username || !password) return res.status(400).json({ success: false, message: 'Zone, circle name, username, and password are required.' });
+    const id = await circleHelper.createCircle({ zoneId, zoneName, name, code, username, password, status });
     return res.json({ success: true, id });
   } catch (error) { return next(error); }
 });
@@ -260,8 +260,9 @@ router.get('/admin/programs', auth.requireApiLogin, auth.requireApiRole('SuperAd
 router.get('/admin/programs/:id/completions', auth.requireApiLogin, auth.requireApiRole('SuperAdmin'), async (req, res, next) => {
   try {
     const completions = await programHelper.getProgramCompletionDetails(req.params.id);
+    const groupedStats = await programHelper.getGroupedCompletionStats(req.params.id);
     const program = await programHelper.getProgramById(req.params.id);
-    return res.json({ success: true, completions, program });
+    return res.json({ success: true, completions, groupedStats, program });
   } catch (error) { return next(error); }
 });
 
@@ -441,10 +442,10 @@ router.get('/admin/reports/export/pdf', auth.requireApiLogin, auth.requireApiRol
 
 /* ─── UNIT USER: PROGRAMS ────────────────────────────────────────────────── */
 
-router.get('/unit/programs', auth.requireApiLogin, auth.requireApiRole('UnitUser'), async (req, res, next) => {
+router.get('/unit/programs', auth.requireApiLogin, auth.requireApiRole('UnitUser', 'CircleUser', 'ZoneUser'), async (req, res, next) => {
   try {
     const user = req.session.user;
-    const programs = await programHelper.getProgramsWithCompletion(user._id, { publishedOnly: true });
+    const programs = await programHelper.getProgramsWithCompletion(user._id, { publishedOnly: true, userRole: user.role });
     return res.json({ success: true, programs });
   } catch (error) { return next(error); }
 });
@@ -454,7 +455,7 @@ router.get('/unit/programs', auth.requireApiLogin, auth.requireApiRole('UnitUser
 
 // Submit a structured completion with optional images and notes
 router.post('/unit/programs/:id/submit-completion',
-  auth.requireApiLogin, auth.requireApiRole('UnitUser'),
+  auth.requireApiLogin, auth.requireApiRole('UnitUser', 'CircleUser', 'ZoneUser'),
   completionUpload.array('images', 5),
   async (req, res, next) => {
     try {
@@ -507,8 +508,8 @@ router.post('/unit/programs/:id/submit-completion',
 
 /* Legacy checkbox toggle endpoint removed — completion is now target-based via submit-completion */
 
-// Get update history for a program
-router.get('/unit/programs/:id/updates', auth.requireApiLogin, auth.requireApiRole('UnitUser'), async (req, res, next) => {
+// Get update history for a specific program and user
+router.get('/unit/programs/:id/updates', auth.requireApiLogin, auth.requireApiRole('UnitUser', 'CircleUser', 'ZoneUser'), async (req, res, next) => {
   try {
     const user = req.session.user;
     const updates = await programHelper.getProgramUpdates(req.params.id, user._id);

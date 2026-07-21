@@ -43,9 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function initializePrograms() {
     if (programs.length) {
       programs = normalizePrograms(programs);
-      renderPrograms();
-      updateStats();
     }
+    renderPrograms();
+    updateStats();
   }
 
   async function fetchPrograms() {
@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
         container.classList.add('d-none');
         return;
       }
-      
+
       const updates = data.updates;
       listEl.innerHTML = updates.map(u => {
         const d = new Date(u.completionDate || u.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -401,7 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
       errorEl.classList.remove('d-none');
       return;
     }
-    
+
     if (!participantsCount || parseInt(participantsCount) < 1) {
       errorEl.textContent = 'Number of participants is required and must be a positive integer.';
       errorEl.classList.remove('d-none');

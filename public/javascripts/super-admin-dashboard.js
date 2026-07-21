@@ -67,16 +67,22 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderDoughnut(completed, pending) {
     const ctx = document.getElementById('doughnut-chart').getContext('2d');
     if (doughnutChart) doughnutChart.destroy();
+    
+    const isEmpty = completed === 0 && pending === 0;
+    const dataVals = isEmpty ? [0, 1] : [completed, pending];
+    const bgColors = isEmpty ? ['#e2e8f0', '#e2e8f0'] : ['#14533e', '#e2e8f0'];
+    const hoverBg = isEmpty ? ['#e2e8f0', '#e2e8f0'] : ['#1a6b4f', '#cbd5e1'];
+
     doughnutChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
         labels: ['Completed', 'Pending'],
         datasets: [{
-          data: [completed, pending],
-          backgroundColor: ['#14533e', '#e2e8f0'],
-          hoverBackgroundColor: ['#1a6b4f', '#cbd5e1'],
+          data: dataVals,
+          backgroundColor: bgColors,
+          hoverBackgroundColor: hoverBg,
           borderWidth: 0,
-          hoverOffset: 6,
+          hoverOffset: isEmpty ? 0 : 6,
         }],
       },
       options: {
@@ -84,8 +90,18 @@ document.addEventListener('DOMContentLoaded', () => {
         maintainAspectRatio: false,
         cutout: '72%',
         plugins: {
-          legend: { position: 'bottom', labels: { padding: 20, font: { family: 'Inter', size: 12 } } },
-          tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.raw}` } },
+          legend: { 
+            position: 'bottom', 
+            labels: { 
+              padding: 20, 
+              font: { family: 'Inter', size: 12 }
+            } 
+          },
+          tooltip: { 
+            callbacks: { 
+              label: (ctx) => isEmpty ? ' No data yet' : ` ${ctx.label}: ${ctx.raw}` 
+            } 
+          },
         },
       },
     });
@@ -94,8 +110,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderBar(zoneData) {
     const ctx = document.getElementById('bar-chart').getContext('2d');
     if (barChart) barChart.destroy();
-    const labels = zoneData.map(z => z._id || 'Unknown');
-    const values = zoneData.map(z => z.count);
+    
+    const isEmpty = !zoneData || zoneData.length === 0;
+    const labels = isEmpty ? ['No Completions Yet'] : zoneData.map(z => z._id || 'Unknown');
+    const values = isEmpty ? [0] : zoneData.map(z => z.count);
+
     barChart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -103,8 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
         datasets: [{
           label: 'Completions',
           data: values,
-          backgroundColor: 'rgba(20,83,62,0.7)',
-          hoverBackgroundColor: '#14533e',
+          backgroundColor: isEmpty ? '#e2e8f0' : 'rgba(20,83,62,0.7)',
+          hoverBackgroundColor: isEmpty ? '#e2e8f0' : '#14533e',
           borderRadius: 6,
           borderSkipped: false,
         }],
@@ -114,11 +133,23 @@ document.addEventListener('DOMContentLoaded', () => {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: (ctx) => ` ${ctx.raw} completions` } },
+          tooltip: { 
+            callbacks: { 
+              label: (ctx) => isEmpty ? ' No data yet' : ` ${ctx.raw} completions` 
+            } 
+          },
         },
         scales: {
           x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 } } },
-          y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Inter', size: 11 } }, grid: { color: '#f1f5f9' } },
+          y: { 
+            beginAtZero: true, 
+            suggestedMax: isEmpty ? 1 : undefined,
+            ticks: { 
+              stepSize: 1, 
+              font: { family: 'Inter', size: 11 } 
+            }, 
+            grid: { color: '#f1f5f9' } 
+          },
         },
       },
     });
@@ -127,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderRecentTable(completions) {
     const tbody = document.getElementById('recent-table');
     if (!completions.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No completions recorded yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No completions recorded yet.</td></tr>';
       return;
     }
     tbody.innerHTML = completions.map(c => `
@@ -136,8 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${c.zone || '—'}</td>
         <td>${c.circle || '—'}</td>
         <td>${c.programTitle || '—'}</td>
-        <td><span class="ds-badge ds-badge-success">${c.completionCount || 1}×</span></td>
-        <td><span class="ds-badge" style="background:#e0f2fe; color:#0369a1;"><i class="ph ph-users"></i> ${c.participantsCount || 0}</span></td>
         <td><span style="max-width:140px; display:inline-block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;" title="${(c.notes || '').replace(/"/g, '&quot;')}">${c.notes ? c.notes : '<span class="text-muted">—</span>'}</span></td>
         <td>${c.completedAt ? new Date(c.completedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
       </tr>
