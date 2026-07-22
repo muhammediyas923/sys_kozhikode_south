@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
               document.getElementById('prog-required-count').value = p.requiredCount || 1;
 
               document.querySelectorAll('input[name="assignTo"]').forEach(cb => cb.checked = false);
-              
+
               if (p.assignTo && p.assignTo.length) {
                 p.assignTo.forEach(role => {
                   const cb = document.querySelector(`input[name="assignTo"][value="${role}"]`);
@@ -220,9 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const requiredCount = document.getElementById('prog-required-count')?.value || 1;
-    
+
     const assignTo = Array.from(document.querySelectorAll('input[name="assignTo"]:checked')).map(cb => cb.value);
-    
+
     if (assignTo.length === 0) {
       document.getElementById('assign-error').classList.remove('d-none');
       return;
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
     formData.append('description', description);
     if (dueDate) formData.append('dueDate', dueDate);
     formData.append('requiredCount', requiredCount);
-    
+
     assignTo.forEach(role => formData.append('assignTo', role));
 
     selectedFiles.forEach(file => {
@@ -306,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const assignTo = prog.assignTo || ['UnitUser'];
 
       let html = '';
-      
+
       const roleMap = {
         'UnitUser': 'Unit Users',
         'CircleUser': 'Circle Users',
@@ -315,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       for (const role of assignTo) {
         const stats = groupedStats[role] || { target: 0, completed: 0, remaining: 0, progress: 0, status: 'Pending' };
-        
+
         html += `
           <div class="ds-card mb-4" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: none;">
             <div class="ds-card-header bg-light d-flex justify-content-between align-items-center p-3">
@@ -377,12 +377,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const count = c.completionCount || 1;
         const pct = Math.min(100, Math.round((count / requiredCount) * 100));
         const images = Array.isArray(c.images) ? c.images : [];
-        
+
         // Determine role display logic based on available data
         let roleDisplay = '<span class="ds-badge ds-badge-muted">Unit</span>';
         if (!c.unitName && c.circle) roleDisplay = '<span class="ds-badge ds-badge-primary">Circle</span>';
         if (!c.unitName && !c.circle && c.zone) roleDisplay = '<span class="ds-badge ds-badge-success">Zone</span>';
-        
+
         return `
                   <tr style="vertical-align:middle;">
                     <td style="vertical-align:middle;">${roleDisplay}</td>
@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </table>
         </div>
       `;
-      
+
       document.getElementById('completions-modal-body').innerHTML = html;
     } catch (err) {
       document.getElementById('completions-modal-body').innerHTML =

@@ -20,13 +20,13 @@ async function getAllPrograms() {
     .collection(collections.PROGRAM_COMPLETIONS_COLLECTION)
     .find({}, { projection: { programId: 1, participantsCount: 1 } })
     .toArray();
-    
+
   const participantCounts = {};
   completions.forEach(c => {
     const pid = c.programId.toString();
     participantCounts[pid] = (participantCounts[pid] || 0) + (c.participantsCount || 0);
   });
-  
+
   return programs.map(p => ({
     ...p,
     totalParticipants: participantCounts[p._id.toString()] || 0
@@ -63,7 +63,7 @@ async function createProgram(data, files) {
       });
     });
   }
-  
+
   let assignTo = [];
   if (Array.isArray(data.assignTo)) {
     assignTo = data.assignTo;
@@ -72,7 +72,7 @@ async function createProgram(data, files) {
   } else {
     assignTo = ['UnitUser'];
   }
-  
+
   const result = await database.collection(collections.PROGRAMS_COLLECTION).insertOne({
     title: normalize(data.title),
     description: normalize(data.description),
@@ -90,14 +90,14 @@ async function createProgram(data, files) {
 
 async function updateProgram(id, data, files) {
   const database = db.getDb();
-  
+
   let assignTo = [];
   if (Array.isArray(data.assignTo)) {
     assignTo = data.assignTo;
   } else if (typeof data.assignTo === 'string') {
     assignTo = [data.assignTo];
   }
-  
+
   const update = {
     $set: {
       title: normalize(data.title),
@@ -107,11 +107,11 @@ async function updateProgram(id, data, files) {
       updatedAt: new Date(),
     },
   };
-  
+
   if (assignTo.length > 0) {
     update.$set.assignTo = assignTo;
   }
-  
+
   if (files && files.length) {
     const newAttachments = files.map((f) => ({
       originalName: f.originalname,
@@ -274,7 +274,7 @@ async function getUserCompletions(userId) {
 async function getProgramsWithCompletion(userId, options = {}) {
   const database = db.getDb();
   let programs = options.publishedOnly ? await getPublishedPrograms() : await getAllPrograms();
-  
+
   if (options.userRole) {
     programs = programs.filter(p => !p.assignTo || p.assignTo.includes(options.userRole) || p.assignTo.length === 0);
   }
@@ -311,7 +311,7 @@ async function getProgramsWithCompletion(userId, options = {}) {
 async function getAggregatePrograms(userRole, userDetails) {
   const database = db.getDb();
   const programs = await getPublishedPrograms();
-  
+
   // Find all units in the scope to calculate the target correctly.
   const unitQuery = { role: 'UnitUser' };
   if (userRole === 'ZoneUser') {
@@ -334,11 +334,13 @@ async function getAggregatePrograms(userRole, userDetails) {
   const aggregations = await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION)
     .aggregate([
       { $match: matchQuery },
-      { $group: {
+      {
+        $group: {
           _id: "$programId",
           totalCompletionCount: { $sum: "$completionCount" },
           totalParticipantsCount: { $sum: "$participantsCount" }
-      }}
+        }
+      }
     ]).toArray();
 
   const aggMap = new Map(aggregations.map(a => [a._id.toString(), a]));
@@ -348,11 +350,11 @@ async function getAggregatePrograms(userRole, userDetails) {
     const requiredCountPerUnit = p.requiredCount || 1;
     const requiredCount = unitsCount * requiredCountPerUnit;
     const completionCount = agg ? (agg.totalCompletionCount || 0) : 0;
-    
+
     const progressPct = requiredCount > 0
       ? Math.min(100, Math.round((completionCount / requiredCount) * 100))
       : (unitsCount === 0 ? 0 : 100);
-      
+
     const isCompleted = requiredCount > 0 && completionCount >= requiredCount;
 
     return {
@@ -406,7 +408,7 @@ async function submitCompletion(programId, userId, unitData, { completionCount, 
 
 async function recalculateCompletions(programId, userId, details) {
   const database = db.getDb();
-  
+
   // 1. Fetch all updates for this user and program
   const updates = await database.collection(collections.PROGRAM_UPDATES_COLLECTION).find({
     programId: new ObjectId(programId),
@@ -417,7 +419,7 @@ async function recalculateCompletions(programId, userId, details) {
   let totalParticipants = 0;
   let mergedImages = [];
   let latestDate = null;
-  
+
   for (const upd of updates) {
     totalCompletion += upd.completionCount || 0;
     totalParticipants += upd.participantsCount || 0;
@@ -469,13 +471,13 @@ async function deleteProgramUpdate(updateId, programId, userId) {
   const database = db.getDb();
   const updateObj = await database.collection(collections.PROGRAM_UPDATES_COLLECTION).findOne({ _id: new ObjectId(updateId) });
   if (!updateObj) return false;
-  
+
   await database.collection(collections.PROGRAM_UPDATES_COLLECTION).deleteOne({ _id: new ObjectId(updateId) });
-  
+
   // Need unitData to recalculate
   const user = await database.collection(collections.USERS_COLLECTION).findOne({ _id: new ObjectId(userId) });
   const details = user ? { zone: user.zone, circle: user.circle, unitName: user.unitName, username: user.username } : {};
-  
+
   await recalculateCompletions(programId, userId, details);
   return true;
 }
@@ -486,10 +488,10 @@ async function editProgramUpdate(updateId, programId, userId, updateData) {
     { _id: new ObjectId(updateId) },
     { $set: updateData }
   );
-  
+
   const user = await database.collection(collections.USERS_COLLECTION).findOne({ _id: new ObjectId(userId) });
   const details = user ? { zone: user.zone, circle: user.circle, unitName: user.unitName, username: user.username } : {};
-  
+
   await recalculateCompletions(programId, userId, details);
   return true;
 }
@@ -514,33 +516,33 @@ async function getGroupedCompletionStats(programId) {
 
   const assignTo = program.assignTo && program.assignTo.length > 0 ? program.assignTo : ['UnitUser'];
   const stats = {};
-  
+
   for (const role of assignTo) {
     const usersInRole = await database.collection(collections.USERS_COLLECTION)
       .find({ role, status: 'Active' })
       .project({ _id: 1 })
       .toArray();
-      
+
     const usersCount = usersInRole.length;
     const userIds = usersInRole.map(u => u._id.toString());
-    
+
     const requiredCount = (program.requiredCount || 1) * usersCount;
-    
+
     const completions = await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION)
       .find({ programId: new ObjectId(programId) })
       .toArray();
-      
+
     let roleCompletionCount = 0;
     for (const c of completions) {
       if (userIds.includes(c.userId.toString())) {
         roleCompletionCount += (c.completionCount || 0);
       }
     }
-    
-    const progressPct = requiredCount > 0 
+
+    const progressPct = requiredCount > 0
       ? Math.min(100, Math.round((roleCompletionCount / requiredCount) * 100))
       : (usersCount === 0 ? 0 : 100);
-      
+
     stats[role] = {
       target: requiredCount,
       completed: roleCompletionCount,
@@ -549,7 +551,7 @@ async function getGroupedCompletionStats(programId) {
       status: (requiredCount > 0 && roleCompletionCount >= requiredCount) ? 'Completed' : 'Pending'
     };
   }
-  
+
   return stats;
 }
 
