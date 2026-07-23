@@ -202,6 +202,15 @@ router.get('/super-admin/reports', auth.requireLogin, auth.requireRole('SuperAdm
   });
 });
 
+router.get('/super-admin/monthly-reports', auth.requireLogin, auth.requireRole('SuperAdmin'), function (req, res) {
+  res.render('super-admin/monthly-reports', {
+    user: req.session.user,
+    layout: false,
+    pageTitle: 'Program Completion Reports',
+    activePage: 'monthly-reports',
+  });
+});
+
 /* ─── UNIT USER ROUTES ───────────────────────────────────────────────────── */
 
 router.get('/unit-dashboard', auth.requireLogin, auth.requireRole('UnitUser'), async function (req, res, next) {

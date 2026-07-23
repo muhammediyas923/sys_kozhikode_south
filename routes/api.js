@@ -269,6 +269,9 @@ router.get('/admin/programs/:id/completions', auth.requireApiLogin, auth.require
 router.post('/admin/programs', auth.requireApiLogin, auth.requireApiRole('SuperAdmin'),
   upload.array('attachments', 10), async (req, res, next) => {
     try {
+      if (!req.body.assignTo) {
+        return res.status(400).json({ success: false, message: 'Assign Program To (user type) is required.' });
+      }
       const id = await programHelper.createProgram(
         { ...req.body, createdBy: req.session.user.username },
         req.files
@@ -283,7 +286,12 @@ router.put('/admin/programs/:id', auth.requireApiLogin, auth.requireApiRole('Sup
     try {
       const updated = await programHelper.updateProgram(req.params.id, req.body, req.files);
       return res.json({ success: updated });
-    } catch (error) { return next(error); }
+    } catch (error) {
+      if (error.message && error.message.includes('Cannot change assigned user type')) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      return next(error);
+    }
   }
 );
 
@@ -440,6 +448,218 @@ router.get('/admin/reports/export/pdf', auth.requireApiLogin, auth.requireApiRol
   } catch (error) { return next(error); }
 });
 
+/* ─── SUPER ADMIN: MONTHLY PROGRAM COMPLETION REPORTS ────────────────────── */
+
+router.get('/admin/monthly-reports', auth.requireApiLogin, auth.requireApiRole('SuperAdmin'), async (req, res, next) => {
+  try {
+    const filters = {
+      month: req.query.month,
+      year: req.query.year,
+      zone: req.query.zone,
+      circle: req.query.circle,
+      unit: req.query.unit,
+      program: req.query.program,
+      status: req.query.status,
+      userType: req.query.userType,
+      userRole: req.query.userRole,
+      search: req.query.search,
+    };
+    const reportData = await programHelper.getMonthlyCompletionReports(filters);
+    return res.json(reportData);
+  } catch (error) { return next(error); }
+});
+
+router.get('/admin/monthly-reports/export/excel', auth.requireApiLogin, auth.requireApiRole('SuperAdmin'), async (req, res, next) => {
+  try {
+    const filters = {
+      month: req.query.month,
+      year: req.query.year,
+      zone: req.query.zone,
+      circle: req.query.circle,
+      unit: req.query.unit,
+      program: req.query.program,
+      status: req.query.status,
+      userType: req.query.userType,
+      userRole: req.query.userRole,
+      search: req.query.search,
+    };
+    const reportData = await programHelper.getMonthlyCompletionReports(filters);
+    const rows = reportData.completions || [];
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Program Completion Report');
+
+    sheet.columns = [
+      { header: 'Program Name', key: 'programTitle', width: 28 },
+      { header: 'User Type', key: 'userType', width: 15 },
+      { header: 'Completed By', key: 'completedBy', width: 22 },
+      { header: 'Username', key: 'username', width: 18 },
+      { header: 'Zone', key: 'zone', width: 18 },
+      { header: 'Circle', key: 'circle', width: 18 },
+      { header: 'Unit', key: 'unit', width: 18 },
+      { header: 'Target', key: 'target', width: 10 },
+      { header: 'Completed Count', key: 'completionCount', width: 16 },
+      { header: 'Remaining', key: 'remaining', width: 12 },
+      { header: 'Progress %', key: 'progressPct', width: 12 },
+      { header: 'Status', key: 'status', width: 14 },
+      { header: 'Completion Date', key: 'completionDate', width: 22 },
+      { header: 'Participants', key: 'participantsCount', width: 14 },
+      { header: 'Photos Count', key: 'imagesCount', width: 14 },
+      { header: 'Remarks / Notes', key: 'notes', width: 35 },
+    ];
+
+    sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF14533E' } };
+
+    rows.forEach(r => {
+      sheet.addRow({
+        programTitle: r.programTitle,
+        userType: r.userType,
+        completedBy: r.completedBy,
+        username: r.username,
+        zone: r.zone || '-',
+        circle: r.circle || '-',
+        unit: r.unit || '-',
+        target: r.target,
+        completionCount: r.completionCount,
+        remaining: r.remaining,
+        progressPct: `${r.progressPct}%`,
+        status: r.completed ? 'Completed' : 'Pending',
+        completionDate: r.completionDate ? new Date(r.completionDate).toLocaleString() : '-',
+        participantsCount: r.participantsCount || 0,
+        imagesCount: r.imagesCount || 0,
+        notes: r.notes || '-'
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="SYS_Monthly_Program_Completion_Report.xlsx"');
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) { return next(error); }
+});
+
+router.get('/admin/monthly-reports/export/pdf', auth.requireApiLogin, auth.requireApiRole('SuperAdmin'), async (req, res, next) => {
+  try {
+    const filters = {
+      month: req.query.month,
+      year: req.query.year,
+      zone: req.query.zone,
+      circle: req.query.circle,
+      unit: req.query.unit,
+      program: req.query.program,
+      status: req.query.status,
+      userType: req.query.userType,
+      userRole: req.query.userRole,
+      search: req.query.search,
+    };
+    const reportData = await programHelper.getMonthlyCompletionReports(filters);
+    const rows = reportData.completions || [];
+
+    const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="SYS_Monthly_Program_Completion_Report.pdf"');
+    doc.pipe(res);
+
+    doc.fontSize(16).fillColor('#14533E').text('SYS Kozhikode South - Monthly Program Completion Report', { align: 'center' });
+    doc.moveDown(0.3);
+    doc.fontSize(9).fillColor('#666666').text(`Generated on: ${new Date().toLocaleString()} | Total Records: ${rows.length}`, { align: 'center' });
+    doc.moveDown(0.8);
+
+    const headers = ['Program Name', 'Completed By', 'Type', 'Zone', 'Circle', 'Unit', 'Progress', 'Status', 'Date'];
+    const colWidths = [150, 110, 70, 80, 80, 80, 70, 65, 75];
+    const startX = 30;
+    let y = doc.y;
+
+    doc.fillColor('#14533E');
+    let x = startX;
+    headers.forEach((h, i) => {
+      doc.rect(x, y, colWidths[i], 20).fill('#14533E');
+      doc.fillColor('#FFFFFF').fontSize(8).text(h, x + 3, y + 6, { width: colWidths[i] - 6, lineBreak: false });
+      x += colWidths[i];
+    });
+    y += 20;
+
+    rows.slice(0, 300).forEach((row, idx) => {
+      x = startX;
+      const rowBg = idx % 2 === 0 ? '#F0F7F4' : '#FFFFFF';
+      const dateStr = row.completionDate ? new Date(row.completionDate).toLocaleDateString() : '-';
+      const rowData = [
+        row.programTitle || '',
+        row.completedBy || '',
+        row.userType || '',
+        row.zone || '-',
+        row.circle || '-',
+        row.unit || '-',
+        `${row.completionCount}/${row.target} (${row.progressPct}%)`,
+        row.completed ? 'Completed' : 'Pending',
+        dateStr
+      ];
+
+      colWidths.forEach((w, i) => { doc.rect(x + colWidths.slice(0, i).reduce((a, b) => a + b, 0), y, w, 18).fill(rowBg); });
+      x = startX;
+      rowData.forEach((cell, i) => {
+        const textCol = i === 7 ? (row.completed ? '#16a34a' : '#d97706') : '#333333';
+        doc.fillColor(textCol).fontSize(7.5).text(String(cell), x + 3, y + 4, { width: colWidths[i] - 6, lineBreak: false });
+        x += colWidths[i];
+      });
+      y += 18;
+      if (y > 520) { doc.addPage(); y = 30; }
+    });
+
+    doc.end();
+  } catch (error) { return next(error); }
+});
+
+router.get('/admin/monthly-reports/export/csv', auth.requireApiLogin, auth.requireApiRole('SuperAdmin'), async (req, res, next) => {
+  try {
+    const filters = {
+      month: req.query.month,
+      year: req.query.year,
+      zone: req.query.zone,
+      circle: req.query.circle,
+      unit: req.query.unit,
+      program: req.query.program,
+      status: req.query.status,
+      userType: req.query.userType,
+      userRole: req.query.userRole,
+      search: req.query.search,
+    };
+    const reportData = await programHelper.getMonthlyCompletionReports(filters);
+    const rows = reportData.completions || [];
+
+    const headers = ['Program Name', 'User Type', 'Completed By', 'Username', 'Zone', 'Circle', 'Unit', 'Target', 'Completed Count', 'Remaining', 'Progress %', 'Status', 'Completion Date', 'Participants', 'Photos Count', 'Remarks'];
+    
+    let csvContent = headers.map(h => `"${h}"`).join(',') + '\n';
+
+    rows.forEach(r => {
+      const line = [
+        r.programTitle,
+        r.userType,
+        r.completedBy,
+        r.username,
+        r.zone || '-',
+        r.circle || '-',
+        r.unit || '-',
+        r.target,
+        r.completionCount,
+        r.remaining,
+        `${r.progressPct}%`,
+        r.completed ? 'Completed' : 'Pending',
+        r.completionDate ? new Date(r.completionDate).toLocaleString() : '-',
+        r.participantsCount || 0,
+        r.imagesCount || 0,
+        (r.notes || '-').replace(/"/g, '""')
+      ].map(v => `"${String(v)}"`).join(',');
+      csvContent += line + '\n';
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="SYS_Monthly_Program_Completion_Report.csv"');
+    return res.send(csvContent);
+  } catch (error) { return next(error); }
+});
+
 /* ─── UNIT USER: PROGRAMS ────────────────────────────────────────────────── */
 
 router.get('/unit/programs', auth.requireApiLogin, auth.requireApiRole('UnitUser', 'CircleUser', 'ZoneUser'), async (req, res, next) => {
@@ -462,6 +682,17 @@ router.post('/unit/programs/:id/submit-completion',
       const user = req.session.user;
       const { completionCount, participantsCount, completionDate, notes } = req.body;
 
+      const program = await programHelper.getProgramById(req.params.id);
+      if (!program) {
+        return res.status(404).json({ success: false, message: 'Program not found.' });
+      }
+      if (program.assignTo && program.assignTo.length > 0) {
+        const assignedRole = Array.isArray(program.assignTo) ? program.assignTo[0] : program.assignTo;
+        if (assignedRole !== user.role) {
+          return res.status(403).json({ success: false, message: 'Access denied. This program is not assigned to your role.' });
+        }
+      }
+
       // Build image records from uploaded files
       const images = (req.files || []).map(f => ({
         originalName: f.originalname,
@@ -477,7 +708,6 @@ router.post('/unit/programs/:id/submit-completion',
       );
 
       // Fetch program title for notification
-      const program = await programHelper.getProgramById(req.params.id);
       const progTitle = program ? program.title : 'Unknown Program';
       const requiredCount = program ? (program.requiredCount || 1) : 1;
       const count = parseInt(completionCount, 10) || 1;

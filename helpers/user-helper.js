@@ -43,9 +43,11 @@ async function doLogin({ zone = '', circle = '', username, password, isAdminLogi
   // First, check if the username belongs to a SuperAdmin in the database
   const superAdmin = await database
     .collection(collections.USERS_COLLECTION)
-    .findOne({ username: uname, role: 'SuperAdmin' });
+    .findOne({ role: 'SuperAdmin' });
 
-  if (superAdmin) {
+  const isSuperAdminAlias = ['sysadmin', 'superadmin', 'admin'].includes(uname.toLowerCase());
+
+  if (superAdmin && (superAdmin.username.toLowerCase() === uname.toLowerCase() || isSuperAdminAlias || isAdminLogin)) {
     // Super Admin login — username only (no zone/circle required)
     user = superAdmin;
   } else {

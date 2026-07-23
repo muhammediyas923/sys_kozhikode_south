@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderProgramsTable() {
     const tbody = document.getElementById('programs-table-body');
     if (!programs.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No programs created yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No programs created yet.</td></tr>';
       return;
     }
     tbody.innerHTML = programs.map((p, index) => {
@@ -37,18 +37,22 @@ document.addEventListener('DOMContentLoaded', () => {
         ? '<span class="ds-badge ds-badge-success">Published</span>'
         : '<span class="ds-badge ds-badge-muted">Draft</span>';
 
-      const attachmentsList = p.attachments && p.attachments.length
-        ? p.attachments.map(att => `<a href="${att.url}" target="_blank" class="d-block text-truncate" style="max-width:120px;" title="${att.originalName}"><i class="ph ph-file"></i> ${att.originalName}</a>`).join('')
-        : '<span class="text-muted">—</span>';
+      const roleVal = Array.isArray(p.assignTo) && p.assignTo.length ? p.assignTo[0] : (typeof p.assignTo === 'string' ? p.assignTo : 'UnitUser');
+      let assignBadge = '<span class="ds-badge ds-badge-info"><i class="ph ph-users me-1"></i> Unit Users</span>';
+      if (roleVal === 'CircleUser' || roleVal === 'CIRCLE') {
+        assignBadge = '<span class="ds-badge ds-badge-warning"><i class="ph ph-circles-three me-1"></i> Circle Users</span>';
+      } else if (roleVal === 'ZoneUser' || roleVal === 'ZONE') {
+        assignBadge = '<span class="ds-badge" style="background:#f3e8ff; color:#6b21a8; font-weight:600;"><i class="ph ph-map-pin me-1"></i> Zone Users</span>';
+      }
 
       return `
         <tr>
           <td>${index + 1}</td>
           <td><strong>${p.title}</strong></td>
+          <td>${assignBadge}</td>
           <td>${statusBadge}</td>
           <td>${formatDate(p.createdAt)}</td>
           <td>
-            <button class="ds-btn ds-btn-outline ds-btn-sm view-completions-btn" data-id="${p._id}" data-title="${p.title}" title="View user completions"><i class="ph ph-users"></i> Completions</button>
             <button class="ds-btn ds-btn-outline ds-btn-sm edit-btn" data-id="${p._id}"><i class="ph ph-pencil-simple"></i> Edit</button>
             <button class="ds-btn ds-btn-outline ds-btn-sm toggle-publish-btn" data-id="${p._id}" data-published="${p.published}">
               <i class="ph ${p.published ? 'ph-eye-closed' : 'ph-eye'}"></i> ${p.published ? 'Unpublish' : 'Publish'}
@@ -60,10 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
 
     // Table actions event delegation
-    tbody.querySelectorAll('.view-completions-btn').forEach(btn => {
-      btn.addEventListener('click', () => openCompletionsModal(btn.dataset.id, btn.dataset.title));
-    });
-
     tbody.querySelectorAll('.edit-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.dataset.id;
@@ -79,16 +79,25 @@ document.addEventListener('DOMContentLoaded', () => {
               document.getElementById('prog-due').value = p.dueDate ? p.dueDate.substring(0, 10) : '';
               document.getElementById('prog-required-count').value = p.requiredCount || 1;
 
+              const roleVal = Array.isArray(p.assignTo) && p.assignTo.length ? p.assignTo[0] : (typeof p.assignTo === 'string' ? p.assignTo : 'UnitUser');
               document.querySelectorAll('input[name="assignTo"]').forEach(cb => cb.checked = false);
+              const radio = document.querySelector(`input[name="assignTo"][value="${roleVal}"]`);
+              if (radio) radio.checked = true;
 
-              if (p.assignTo && p.assignTo.length) {
-                p.assignTo.forEach(role => {
-                  const cb = document.querySelector(`input[name="assignTo"][value="${role}"]`);
-                  if (cb) cb.checked = true;
-                });
-              } else {
-                const cb = document.querySelector(`input[name="assignTo"][value="UnitUser"]`);
-                if (cb) cb.checked = true;
+              // Check if completions exist to lock assignTo selection
+              try {
+                const compResp = await fetch(`/api/admin/programs/${id}/completions`);
+                const compData = await compResp.json();
+                const hasCompletions = compData.completions && compData.completions.length > 0;
+                const radios = document.querySelectorAll('input[name="assignTo"]');
+                const lockNote = document.getElementById('assign-lock-note');
+                radios.forEach(r => r.disabled = hasCompletions);
+                if (lockNote) {
+                  if (hasCompletions) lockNote.classList.remove('d-none');
+                  else lockNote.classList.add('d-none');
+                }
+              } catch (cErr) {
+                /* ignore lock check error */
               }
 
               selectedFiles = [];
@@ -119,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const resp = await fetch(`/api/admin/programs/${id}/${endpoint}`, { method: 'POST' });
           const data = await resp.json();
           if (data.success) {
-            showToast(isPublished ? 'Program unpublished (moved to drafts).' : 'Program published to all units!', 'success');
+            showToast(isPublished ? 'Program unpublished (moved to drafts).' : 'Program published to assigned user type!', 'success');
             fetchPrograms();
           }
         } catch (err) {
@@ -194,8 +203,10 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedFiles = [];
     document.getElementById('program-form').reset();
     document.getElementById('assign-error').classList.add('d-none');
-    document.querySelectorAll('input[name="assignTo"]').forEach(cb => cb.checked = false);
-    document.querySelector('input[name="assignTo"][value="UnitUser"]').checked = true;
+    document.getElementById('assign-lock-note')?.classList.add('d-none');
+    document.querySelectorAll('input[name="assignTo"]').forEach(cb => { cb.checked = false; cb.disabled = false; });
+    const defaultRadio = document.querySelector('input[name="assignTo"][value="UnitUser"]');
+    if (defaultRadio) defaultRadio.checked = true;
     renderSelectedFiles();
     document.getElementById('program-modal-title').textContent = 'Create Program';
     document.getElementById('program-modal-error').classList.add('d-none');
@@ -221,7 +232,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const requiredCount = document.getElementById('prog-required-count')?.value || 1;
 
-    const assignTo = Array.from(document.querySelectorAll('input[name="assignTo"]:checked')).map(cb => cb.value);
+    const selectedRadio = document.querySelector('input[name="assignTo"]:checked');
+    if (!selectedRadio) {
+      document.getElementById('assign-error').classList.remove('d-none');
+      return;
+    }
+    document.getElementById('assign-error').classList.add('d-none');
+    const assignTo = [selectedRadio.value];
 
     if (assignTo.length === 0) {
       document.getElementById('assign-error').classList.remove('d-none');

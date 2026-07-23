@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Program Progress Monitoring | SYS Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/stylesheets/variables.css">
+  <link rel="stylesheet" href="/stylesheets/dashboard.css?v=2">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#14533e">
+  <link rel="apple-touch-icon" href="/images/icons/icon-192x192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Custom Styling for Monthly Reports & Progress Tables Module */
+    .metric-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .stat-card-gradient {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(244, 247, 246, 0.9));
+      border: 1px solid rgba(20, 83, 62, 0.12);
+      border-radius: 16px;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+      transition: all 0.25s ease;
+    }
+
+    .stat-card-gradient:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(20, 83, 62, 0.1);
+    }
+
+    .stat-card-gradient::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--card-accent, #14533e);
+    }
+
+    .stat-icon-wrapper {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      margin-bottom: 0.75rem;
+      background: var(--icon-bg, rgba(20, 83, 62, 0.1));
+      color: var(--icon-color, #14533e);
+    }
+
+    .stat-value {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: #1a2521;
+      line-height: 1.1;
+    }
+
+    .stat-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      margin-top: 0.25rem;
+    }
+
+    .stat-trend {
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: rgba(20, 83, 62, 0.08);
+      color: #14533e;
+    }
+
+    /* Filter Bar Styling */
+    .filter-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 1.25rem;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+      margin-bottom: 1.5rem;
+    }
+
+    .filter-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #475569;
+      margin-bottom: 0.35rem;
+    }
+
+    /* Badge Types */
+    .badge-user-type {
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .badge-unit {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+
+    .badge-circle {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .badge-zone {
+      background: #f3e8ff;
+      color: #6b21a8;
+    }
+
+    /* Progress bar transition */
+    .progress-bar-animated-smooth {
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Sortable Header Styling */
+    .th-sortable {
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s ease;
+    }
+
+    .th-sortable:hover {
+      background: #f1f5f9;
+    }
+
+    /* Timeline View */
+    .timeline-container {
+      position: relative;
+      padding-left: 2rem;
+      margin-top: 1rem;
+    }
+
+    .timeline-container::before {
+      content: '';
+      position: absolute;
+      left: 14px;
+      top: 5px;
+      bottom: 5px;
+      width: 2px;
+      background: #cbd5e1;
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 1.25rem;
+    }
+
+    .timeline-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .timeline-badge {
+      position: absolute;
+      left: -2rem;
+      top: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #14533e;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      box-shadow: 0 0 0 4px #fff;
+    }
+
+    .timeline-content {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+    }
+
+    .timeline-title {
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: #1e293b;
+      margin-bottom: 0.2rem;
+    }
+
+    .timeline-time {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+
+    /* Gallery Grid & Lightbox */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .gallery-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      cursor: pointer;
+    }
+
+    .gallery-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .gallery-img-wrapper {
+      width: 100%;
+      height: 160px;
+      overflow: hidden;
+      position: relative;
+      background: #000;
+    }
+
+    .gallery-img-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .gallery-card:hover .gallery-img-wrapper img {
+      transform: scale(1.06);
+    }
+
+    .gallery-card-body {
+      padding: 0.85rem;
+    }
+
+    .uploader-name {
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #1e293b;
+      margin-bottom: 0.25rem;
+    }
+
+    .uploader-meta {
+      font-size: 0.75rem;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
+    /* Lightbox Styling */
+    .lightbox-modal .modal-dialog {
+      max-width: 1100px;
+    }
+
+    .lightbox-content {
+      background: #0f172a;
+      color: #fff;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .lightbox-image-container {
+      position: relative;
+      min-height: 480px;
+      max-height: 70vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #020617;
+      overflow: hidden;
+    }
+
+    .lightbox-image-container img {
+      max-width: 100%;
+      max-height: 68vh;
+      object-fit: contain;
+      transition: transform 0.2s ease;
+    }
+
+    .lightbox-metadata-panel {
+      background: #1e293b;
+      padding: 1.5rem;
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .lightbox-meta-item {
+      margin-bottom: 1rem;
+    }
+
+    .lightbox-meta-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .lightbox-meta-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #94a3b8;
+      margin-bottom: 0.2rem;
+    }
+
+    .lightbox-meta-val {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #f8fafc;
+    }
+
+    .zoom-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .zoom-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+
+<body class="dashboard-body">
+  <div class="ds-sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="ds-sidebar" id="sidebar">
+    <div class="ds-sidebar-brand">
+      <img src="/images/Gemini_Generated_Image_41luhh41luhh41lu-removebg-preview.png" alt="SYS" class="ds-sidebar-logo">
+      <div>
+        <div class="ds-sidebar-title">SYS Admin</div>
+        <div class="ds-sidebar-subtitle">Kozhikode South</div>
+      </div>
+    </div>
+
+    <nav class="ds-sidebar-nav">
+      <div class="ds-nav-section-title">Overview</div>
+      <a href="/super-admin" class="ds-nav-link">
+        <i class="ph ph-squares-four"></i> Dashboard
+      </a>
+
+      <div class="ds-nav-section-title">Management</div>
+      <a href="/super-admin/zones" class="ds-nav-link">
+        <i class="ph ph-map-pin"></i> Zones
+      </a>
+      <a href="/super-admin/circles" class="ds-nav-link">
+        <i class="ph ph-circles-three"></i> Circles
+      </a>
+      <a href="/super-admin/users" class="ds-nav-link">
+        <i class="ph ph-users"></i> Unit Users
+      </a>
+      <a href="/super-admin/programs" class="ds-nav-link">
+        <i class="ph ph-clipboard-text"></i> Programs
+      </a>
+      <a href="/super-admin/profile" class="ds-nav-link">
+        <i class="ph ph-gear"></i> Account Settings
+      </a>
+
+      <div class="ds-nav-section-title">Analytics</div>
+      <a href="/super-admin/monthly-reports" class="ds-nav-link active">
+        <i class="ph ph-calendar-check"></i> Reports
+      </a>
+    </nav>
+
+    <div class="ds-sidebar-footer">
+      <div class="ds-user-widget">
+        <div class="ds-user-avatar">SA</div>
+        <div class="ds-user-info">
+          <div class="ds-user-name">{{user.unitName}}</div>
+          <div class="ds-user-role">Super Admin</div>
+        </div>
+        <a href="/logout" class="ds-logout-btn" title="Logout">
+          <i class="ph ph-sign-out"></i>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <div class="ds-main">
+    <!-- TOP BAR -->
+    <header class="ds-topbar">
+      <button type="button" class="ds-topbar-menu-btn" id="sidebar-toggle" aria-label="Toggle sidebar"
+        onclick="window.toggleSidebar?.()">
+        <i class="ph ph-list"></i>
+      </button>
+      <div class="ds-topbar-title">Program Progress Tables <span>/ User Type Isolation</span></div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="ds-content">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+          <h1 class="h3 fw-bold text-dark mb-1">Program Progress Monitoring</h1>
+          <p class="text-muted small mb-0">Independent Program Progress Tables for Unit, Circle, and Zone Users.</p>
+        </div>
+        <div class="d-flex gap-2">
+          <div class="dropdown">
+            <button class="btn btn-emerald dropdown-toggle d-inline-flex align-items-center gap-2" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false"
+              style="background:#14533e; color:#fff; border-radius:10px;">
+              <i class="ph ph-download-simple"></i> Export Active Table
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+              <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" id="export-excel-btn"><i
+                    class="ph ph-file-xls text-success fs-5"></i> Export Excel (.xlsx)</a></li>
+              <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" id="export-pdf-btn"><i
+                    class="ph ph-file-pdf text-danger fs-5"></i> Export PDF (.pdf)</a></li>
+              <li><a class="dropdown-item d-flex align-items-center gap-2" href="#" id="export-csv-btn"><i
+                    class="ph ph-file-csv text-primary fs-5"></i> Export CSV (.csv)</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- DASHBOARD OVERVIEW SUMMARY CARDS -->
+      <div class="metric-card-grid">
+        <div class="stat-card-gradient" style="--card-accent: #0284c7; --icon-bg: #e0f2fe; --icon-color: #0284c7;">
+          <div class="stat-icon-wrapper"><i class="ph ph-clipboard-text"></i></div>
+          <div class="stat-value" id="card-total-programs">0</div>
+          <div class="stat-label">Total Programs</div>
+          <div class="stat-trend"><i class="ph ph-squares-four"></i> Active catalog</div>
+        </div>
+
+        <div class="stat-card-gradient" style="--card-accent: #16a34a; --icon-bg: #dcfce7; --icon-color: #16a34a;">
+          <div class="stat-icon-wrapper"><i class="ph ph-check-circle"></i></div>
+          <div class="stat-value" id="card-completed-programs">0</div>
+          <div class="stat-label">Completed Programs</div>
+          <div class="stat-trend text-success"><i class="ph ph-trend-up"></i> Target achieved</div>
+        </div>
+
+        <div class="stat-card-gradient" style="--card-accent: #d97706; --icon-bg: #fef3c7; --icon-color: #d97706;">
+          <div class="stat-icon-wrapper"><i class="ph ph-clock-afternoon"></i></div>
+          <div class="stat-value" id="card-pending-programs">0</div>
+          <div class="stat-label">Pending Programs</div>
+          <div class="stat-trend text-warning"><i class="ph ph-hourglass-high"></i> In progress</div>
+        </div>
+
+        <div class="stat-card-gradient" style="--card-accent: #6366f1; --icon-bg: #e0e7ff; --icon-color: #6366f1;">
+          <div class="stat-icon-wrapper"><i class="ph ph-users-three"></i></div>
+          <div class="stat-value" id="card-total-participants">0</div>
+          <div class="stat-label">Total Participants</div>
+          <div class="stat-trend"><i class="ph ph-chart-line-up"></i> Member engagement</div>
+        </div>
+
+        <div class="stat-card-gradient" style="--card-accent: #ec4899; --icon-bg: #fce7f3; --icon-color: #ec4899;">
+          <div class="stat-icon-wrapper"><i class="ph ph-image"></i></div>
+          <div class="stat-value" id="card-total-images">0</div>
+          <div class="stat-label">Total Images Uploaded</div>
+          <div class="stat-trend"><i class="ph ph-camera"></i> Photo proof submitted</div>
+        </div>
+
+        <div class="stat-card-gradient" style="--card-accent: #0d9488; --icon-bg: #ccfbf1; --icon-color: #0d9488;">
+          <div class="stat-icon-wrapper"><i class="ph ph-calendar-star"></i></div>
+          <div class="stat-value" id="card-this-month">0</div>
+          <div class="stat-label">This Month's Completions</div>
+          <div class="stat-trend"><i class="ph ph-calendar"></i> Current month count</div>
+        </div>
+      </div>
+
+      <!-- POWERFUL DYNAMIC FILTERS BAR -->
+      <div class="filter-card">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div class="fw-bold text-dark d-flex align-items-center gap-2">
+            <i class="ph ph-funnel text-success fs-5"></i>
+            <span id="filter-heading-text">Filter Unit User Progress</span>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" id="reset-filters-btn">
+            <i class="ph ph-arrows-counter-clockwise"></i> Reset Filters
+          </button>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-2 col-6">
+            <label class="filter-label">Month</label>
+            <select class="form-select form-select-sm" id="filter-month">
+              <option value="all">All Months</option>
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+
+          <div class="col-md-2 col-6">
+            <label class="filter-label">Year</label>
+            <select class="form-select form-select-sm" id="filter-year">
+              <option value="all">All Years</option>
+            </select>
+          </div>
+
+          <div class="col-md-2 col-6" id="filter-zone-col">
+            <label class="filter-label">Zone</label>
+            <select class="form-select form-select-sm" id="filter-zone">
+              <option value="all">All Zones</option>
+            </select>
+          </div>
+
+          <div class="col-md-2 col-6" id="filter-circle-col">
+            <label class="filter-label">Circle</label>
+            <select class="form-select form-select-sm" id="filter-circle">
+              <option value="all">All Circles</option>
+            </select>
+          </div>
+
+          <div class="col-md-2 col-6" id="filter-unit-col">
+            <label class="filter-label">Unit</label>
+            <input type="text" class="form-control form-control-sm" id="filter-unit" placeholder="Unit name...">
+          </div>
+
+          <div class="col-md-3 col-6">
+            <label class="filter-label">Program Title</label>
+            <select class="form-select form-select-sm" id="filter-program">
+              <option value="all">Select Program (All)</option>
+            </select>
+          </div>
+
+          <div class="col-md-2 col-6">
+            <label class="filter-label">Status</label>
+            <select class="form-select form-select-sm" id="filter-status">
+              <option value="all">All Status</option>
+              <option value="completed">Completed</option>
+              <option value="pending">Pending</option>
+            </select>
+          </div>
+
+          <div class="col-md-5 col-12">
+            <label class="filter-label">Search Keywords</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-light"><i class="ph ph-magnifying-glass"></i></span>
+              <input type="text" class="form-control" id="filter-search"
+                placeholder="Search program, user, zone, circle, unit...">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN THREE SEPARATE USER PROGRESS TABS -->
+      <ul class="nav nav-pills custom-tabs mb-4 gap-2 border-bottom pb-2" id="reportTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active d-flex align-items-center gap-2 fw-semibold px-3 py-2" id="unit-tab"
+            data-bs-toggle="tab" data-bs-target="#unit-pane" type="button" role="tab">
+            <i class="ph ph-buildings fs-5 text-primary"></i> Unit User Progress (<span id="unit-count-badge">0</span>)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link d-flex align-items-center gap-2 fw-semibold px-3 py-2" id="circle-tab"
+            data-bs-toggle="tab" data-bs-target="#circle-pane" type="button" role="tab">
+            <i class="ph ph-circles-three fs-5 text-warning"></i> Circle User Progress (<span
+              id="circle-count-badge">0</span>)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link d-flex align-items-center gap-2 fw-semibold px-3 py-2" id="zone-tab"
+            data-bs-toggle="tab" data-bs-target="#zone-pane" type="button" role="tab">
+            <i class="ph ph-map-pin fs-5 text-purple"></i> Zone User Progress (<span id="zone-count-badge">0</span>)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link d-flex align-items-center gap-2 fw-semibold px-3 py-2" id="gallery-tab"
+            data-bs-toggle="tab" data-bs-target="#gallery-pane" type="button" role="tab">
+            <i class="ph ph-images fs-5"></i> Evidence Gallery (<span id="gallery-count-badge">0</span>)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link d-flex align-items-center gap-2 fw-semibold px-3 py-2" id="analytics-tab"
+            data-bs-toggle="tab" data-bs-target="#analytics-pane" type="button" role="tab">
+            <i class="ph ph-chart-pie-slice fs-5"></i> Monthly Analytics
+          </button>
+        </li>
+      </ul>
+
+      <!-- TAB CONTENT -->
+      <div class="tab-content" id="reportTabsContent">
+
+        <!-- 1. UNIT USER PROGRESS TABLE PANE -->
+        <div class="tab-pane fade show active" id="unit-pane" role="tabpanel">
+          <div class="ds-card shadow-sm">
+            <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+              <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                <i class="ph ph-buildings text-primary"></i> Unit User Program Progress Table
+              </h6>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1"
+                id="unit-info-badge">0 records</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0" id="unit-progress-table">
+                <thead class="table-light">
+                  <tr class="text-uppercase small text-muted">
+                    <th scope="col" class="th-sortable" onclick="sortTable('UnitUser', 'programTitle')">Program Name <i
+                        class="ph ph-arrows-down-up"></i></th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('UnitUser', 'zone')">Zone Name <i
+                        class="ph ph-arrows-down-up"></i></th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('UnitUser', 'circle')">Circle Name <i
+                        class="ph ph-arrows-down-up"></i></th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('UnitUser', 'unit')">Unit Name <i
+                        class="ph ph-arrows-down-up"></i></th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('UnitUser', 'username')">Username <i
+                        class="ph ph-arrows-down-up"></i></th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('UnitUser', 'completed')">Status</th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('UnitUser', 'lastUpdated')">Last Updated</th>
+                    <th scope="col" class="text-end">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="unit-table-body">
+                  <tr>
+                    <td colspan="8" class="text-center py-4">
+                      <div class="spinner-border text-primary" role="status"></div>
+                      <div class="text-muted mt-2">Loading Unit User progress records...</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <!-- Pagination Footer -->
+            <div
+              class="card-footer bg-white border-top py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div class="small text-muted" id="unit-pagination-info">Showing 0 to 0 of 0 entries</div>
+              <div class="d-flex align-items-center gap-2">
+                <select class="form-select form-select-sm" style="width: auto;" id="unit-page-size"
+                  onchange="changePageSize('UnitUser', this.value)">
+                  <option value="10">10 per page</option>
+                  <option value="25">25 per page</option>
+                  <option value="50">50 per page</option>
+                </select>
+                <nav aria-label="Unit table pagination">
+                  <ul class="pagination pagination-sm mb-0" id="unit-pagination"></ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. CIRCLE USER PROGRESS TABLE PANE -->
+        <div class="tab-pane fade" id="circle-pane" role="tabpanel">
+          <div class="ds-card shadow-sm">
+            <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+              <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                <i class="ph ph-circles-three text-warning"></i> Circle User Program Progress Table
+              </h6>
+              <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1"
+                id="circle-info-badge">0 records</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0" id="circle-progress-table">
+                <thead class="table-light">
+                  <tr class="text-uppercase small text-muted">
+                    <th scope="col" class="th-sortable" onclick="sortTable('CircleUser', 'programTitle')">Program Name
+                      <i class="ph ph-arrows-down-up"></i></th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('CircleUser', 'zone')">Zone Name <i
+                        class="ph ph-arrows-down-up"></i></th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('CircleUser', 'circle')">Circle Name <i
+                        class="ph ph-arrows-down-up"></i></th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('CircleUser', 'username')">Username <i
+                        class="ph ph-arrows-down-up"></i></th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('CircleUser', 'completed')">Status</th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('CircleUser', 'lastUpdated')">Last Updated
+                    </th>
+                    <th scope="col" class="text-end">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="circle-table-body">
+                  <tr>
+                    <td colspan="7" class="text-center py-4">
+                      <div class="spinner-border text-warning" role="status"></div>
+                      <div class="text-muted mt-2">Loading Circle User progress records...</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <!-- Pagination Footer -->
+            <div
+              class="card-footer bg-white border-top py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div class="small text-muted" id="circle-pagination-info">Showing 0 to 0 of 0 entries</div>
+              <div class="d-flex align-items-center gap-2">
+                <select class="form-select form-select-sm" style="width: auto;" id="circle-page-size"
+                  onchange="changePageSize('CircleUser', this.value)">
+                  <option value="10">10 per page</option>
+                  <option value="25">25 per page</option>
+                  <option value="50">50 per page</option>
+                </select>
+                <nav aria-label="Circle table pagination">
+                  <ul class="pagination pagination-sm mb-0" id="circle-pagination"></ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. ZONE USER PROGRESS TABLE PANE -->
+        <div class="tab-pane fade" id="zone-pane" role="tabpanel">
+          <div class="ds-card shadow-sm">
+            <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+              <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                <i class="ph ph-map-pin text-purple"></i> Zone User Program Progress Table
+              </h6>
+              <span class="badge bg-purple-subtle text-purple border border-purple-subtle px-3 py-1"
+                id="zone-info-badge" style="background:#f3e8ff; color:#6b21a8;">0 records</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0" id="zone-progress-table">
+                <thead class="table-light">
+                  <tr class="text-uppercase small text-muted">
+                    <th scope="col" class="th-sortable" onclick="sortTable('ZoneUser', 'programTitle')">Program Name <i
+                        class="ph ph-arrows-down-up"></i></th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('ZoneUser', 'zone')">Zone Name <i
+                        class="ph ph-arrows-down-up"></i></th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('ZoneUser', 'username')">Username <i
+                        class="ph ph-arrows-down-up"></i></th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('ZoneUser', 'completed')">Status</th>
+                    <th scope="col" class="th-sortable" onclick="sortTable('ZoneUser', 'lastUpdated')">Last Updated</th>
+                    <th scope="col" class="text-end">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="zone-table-body">
+                  <tr>
+                    <td colspan="6" class="text-center py-4">
+                      <div class="spinner-border text-purple" style="color:#6b21a8;" role="status"></div>
+                      <div class="text-muted mt-2">Loading Zone User progress records...</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <!-- Pagination Footer -->
+            <div
+              class="card-footer bg-white border-top py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div class="small text-muted" id="zone-pagination-info">Showing 0 to 0 of 0 entries</div>
+              <div class="d-flex align-items-center gap-2">
+                <select class="form-select form-select-sm" style="width: auto;" id="zone-page-size"
+                  onchange="changePageSize('ZoneUser', this.value)">
+                  <option value="10">10 per page</option>
+                  <option value="25">25 per page</option>
+                  <option value="50">50 per page</option>
+                </select>
+                <nav aria-label="Zone table pagination">
+                  <ul class="pagination pagination-sm mb-0" id="zone-pagination"></ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. EVIDENCE GALLERY PANE -->
+        <div class="tab-pane fade" id="gallery-pane" role="tabpanel">
+          <div class="ds-card shadow-sm p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h5 class="fw-bold text-dark mb-0"><i class="ph ph-aperture text-success me-2"></i>Uploaded Evidence
+                Gallery</h5>
+              <span class="badge bg-light text-dark fs-6" id="gallery-total-info">Showing 0 photos</span>
+            </div>
+            <div class="gallery-grid" id="gallery-grid-container">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. MONTHLY ANALYTICS PANE -->
+        <div class="tab-pane fade" id="analytics-pane" role="tabpanel">
+          <div class="row g-4">
+            <div class="col-md-8">
+              <div class="ds-card shadow-sm p-3">
+                <h6 class="fw-bold text-dark mb-3"><i class="ph ph-chart-bar text-primary me-2"></i>Program Completions
+                  & Participants by Month</h6>
+                <div style="height: 320px;"><canvas id="monthlyTrendChart"></canvas></div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="ds-card shadow-sm p-3">
+                <h6 class="fw-bold text-dark mb-3"><i class="ph ph-user-gear text-purple me-2"></i>Completion Share by
+                  User Type</h6>
+                <div style="height: 320px;"><canvas id="userTypeChart"></canvas></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="ds-card shadow-sm p-3">
+                <h6 class="fw-bold text-dark mb-3"><i class="ph ph-map-pin-line text-success me-2"></i>Zone-wise Program
+                  Completions</h6>
+                <div style="height: 300px;"><canvas id="zoneChart"></canvas></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="ds-card shadow-sm p-3">
+                <h6 class="fw-bold text-dark mb-3"><i class="ph ph-circles-three text-warning me-2"></i>Circle-wise
+                  Program Completions</h6>
+                <div style="height: 300px;"><canvas id="circleChart"></canvas></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- VIEW DETAILS MODAL -->
+  <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+        <div class="modal-header bg-light border-0 py-3" style="border-radius: 20px 20px 0 0;">
+          <div class="d-flex align-items-center gap-2">
+            <div class="badge bg-success px-3 py-2 fs-6" id="modal-status-badge">Completed</div>
+            <h5 class="modal-title fw-bold text-dark" id="modal-program-title">Program Title</h5>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-4">
+            <!-- Program Specs -->
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded-4 h-100">
+                <h6 class="fw-bold text-success mb-3"><i class="ph ph-info me-2"></i>Program Information</h6>
+                <div class="mb-2"><span class="text-muted small">Description:</span>
+                  <div class="fw-semibold text-dark" id="modal-prog-desc">-</div>
+                </div>
+                <div class="mb-2"><span class="text-muted small">Due Date:</span> <span class="fw-semibold text-dark"
+                    id="modal-due-date">-</span></div>
+                <div class="mb-2"><span class="text-muted small">Target Required:</span> <span
+                    class="fw-semibold text-dark" id="modal-target">-</span></div>
+                <div class="mb-2"><span class="text-muted small">Actual Logged:</span> <span
+                    class="fw-semibold text-dark" id="modal-actual">-</span></div>
+              </div>
+            </div>
+
+            <!-- User Info Card (Dynamic per User Type) -->
+            <div class="col-md-6">
+              <div class="p-3 bg-light rounded-4 h-100">
+                <h6 class="fw-bold text-primary mb-3"><i class="ph ph-user-circle me-2"></i>Completed By (User Info)
+                </h6>
+                <div class="mb-2"><span class="text-muted small">Name / Entity:</span> <span class="fw-bold text-dark"
+                    id="modal-user-name">-</span></div>
+                <div class="mb-2"><span class="text-muted small">Username:</span> <code class="text-primary fw-bold"
+                    id="modal-username">-</code></div>
+                <div class="mb-2"><span class="text-muted small">User Type:</span> <span
+                    class="badge badge-user-type badge-unit" id="modal-usertype-badge">Unit User</span></div>
+                <div class="mb-2" id="modal-zone-row"><span class="text-muted small">Zone:</span> <span
+                    class="fw-semibold text-dark" id="modal-zone">-</span></div>
+                <div class="mb-2" id="modal-circle-row"><span class="text-muted small">Circle:</span> <span
+                    class="fw-semibold text-dark" id="modal-circle">-</span></div>
+                <div class="mb-2" id="modal-unit-row"><span class="text-muted small">Unit:</span> <span
+                    class="fw-semibold text-dark" id="modal-unit">-</span></div>
+              </div>
+            </div>
+
+            <!-- Stats & Remarks -->
+            <div class="col-12">
+              <div class="p-3 border rounded-4">
+                <h6 class="fw-bold text-dark mb-2"><i class="ph ph-chart-bar me-2"></i>Statistics & Remarks</h6>
+                <div class="row text-center my-2">
+                  <div class="col-4 border-end">
+                    <div class="text-muted small">Participants</div>
+                    <div class="fs-4 fw-bold text-success" id="modal-participants-count">0</div>
+                  </div>
+                  <div class="col-4 border-end">
+                    <div class="text-muted small">Completion Date</div>
+                    <div class="fw-bold text-dark mt-1" id="modal-comp-date">-</div>
+                  </div>
+                  <div class="col-4">
+                    <div class="text-muted small">Photos Attached</div>
+                    <div class="fs-4 fw-bold text-primary" id="modal-photos-count">0</div>
+                  </div>
+                </div>
+                <div class="mt-3">
+                  <span class="text-muted small">Remarks / Notes:</span>
+                  <p class="fst-italic text-dark bg-light p-2 rounded-3 mt-1 mb-0" id="modal-notes">No remarks provided.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Timeline View -->
+            <div class="col-12">
+              <h6 class="fw-bold text-dark mb-2"><i class="ph ph-clock-counter-clockwise me-2"></i>Submission Timeline
+              </h6>
+              <div class="timeline-container" id="modal-timeline-container">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- Uploaded Images Gallery -->
+            <div class="col-12">
+              <h6 class="fw-bold text-dark mb-2"><i class="ph ph-images me-2"></i>Attached Evidence Photos</h6>
+              <div class="gallery-grid" id="modal-images-grid">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIGHTBOX MODAL WITH METADATA CARD -->
+  <div class="modal fade lightbox-modal" id="lightboxModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content lightbox-content shadow-2xl">
+        <div class="modal-header border-0 pb-0">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-emerald text-white px-3 py-1" id="lb-program-badge"
+              style="background:#14533e;">Program</span>
+            <span class="text-light small" id="lb-image-counter">Image 1 of 1</span>
+          </div>
+          <div class="d-flex align-items-center gap-2 ms-auto">
+            <button class="zoom-btn" id="lb-zoom-out" title="Zoom Out"><i class="ph ph-minus"></i></button>
+            <button class="zoom-btn" id="lb-zoom-in" title="Zoom In"><i class="ph ph-plus"></i></button>
+            <button class="zoom-btn" id="lb-zoom-reset" title="Reset Zoom"><i
+                class="ph ph-arrows-out-cardinal"></i></button>
+            <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal"
+              aria-label="Close"></button>
+          </div>
+        </div>
+        <div class="modal-body p-0">
+          <div class="row g-0">
+            <!-- Main Image View -->
+            <div class="col-md-8 position-relative">
+              <div class="lightbox-image-container" id="lb-container">
+                <img src="" id="lb-main-img" alt="Evidence photo">
+              </div>
+              <button class="btn btn-dark position-absolute start-0 top-50 translate-middle-y ms-2 rounded-circle"
+                id="lb-prev-btn" style="width:44px; height:44px; opacity:0.8;"><i
+                  class="ph ph-caret-left fs-4"></i></button>
+              <button class="btn btn-dark position-absolute end-0 top-50 translate-middle-y me-2 rounded-circle"
+                id="lb-next-btn" style="width:44px; height:44px; opacity:0.8;"><i
+                  class="ph ph-caret-right fs-4"></i></button>
+            </div>
+
+            <!-- Image Information Card (Metadata Panel) -->
+            <div class="col-md-4 lightbox-metadata-panel">
+              <h6 class="fw-bold text-success mb-3 pb-2 border-bottom border-secondary"><i
+                  class="ph ph-identification-card me-2"></i>Uploader Information Card</h6>
+
+              <div class="lightbox-meta-item">
+                <div class="lightbox-meta-label">Uploaded By</div>
+                <div class="lightbox-meta-val" id="lb-uploader-name">User</div>
+              </div>
+
+              <div class="lightbox-meta-item">
+                <div class="lightbox-meta-label">Username</div>
+                <code class="text-warning fs-6" id="lb-username">-</code>
+              </div>
+
+              <div class="lightbox-meta-item">
+                <div class="lightbox-meta-label">User Type</div>
+                <span class="badge badge-user-type badge-unit" id="lb-user-type">Unit User</span>
+              </div>
+
+              <div class="lightbox-meta-item">
+                <div class="lightbox-meta-label">Location Info</div>
+                <div class="lightbox-meta-val text-info fs-6" id="lb-location">-</div>
+              </div>
+
+              <div class="lightbox-meta-item">
+                <div class="lightbox-meta-label">Program Name</div>
+                <div class="lightbox-meta-val text-white" id="lb-program-name">Program</div>
+              </div>
+
+              <div class="lightbox-meta-item">
+                <div class="lightbox-meta-label">Upload Timestamp</div>
+                <div class="lightbox-meta-val text-muted small" id="lb-upload-timestamp">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    let globalReportsData = null;
+    let currentGalleryImages = [];
+    let currentLightboxIdx = 0;
+    let zoomScale = 1;
+    let activeUserTypeTab = 'UnitUser'; // 'UnitUser', 'CircleUser', 'ZoneUser'
+
+    // Independent pagination & sorting states for each table
+    const tableStates = {
+      UnitUser: { currentPage: 1, pageSize: 10, sortField: 'lastUpdated', sortDir: 'desc' },
+      CircleUser: { currentPage: 1, pageSize: 10, sortField: 'lastUpdated', sortDir: 'desc' },
+      ZoneUser: { currentPage: 1, pageSize: 10, sortField: 'lastUpdated', sortDir: 'desc' }
+    };
+
+    // Chart instances
+    let chartMonthly = null;
+    let chartUserType = null;
+    let chartZone = null;
+    let chartCircle = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchReports();
+
+      // Bind filter inputs
+      const filterInputs = ['filter-month', 'filter-year', 'filter-zone', 'filter-circle', 'filter-unit', 'filter-program', 'filter-status'];
+      filterInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => fetchReports());
+      });
+
+      // Search debounced
+      let searchTimeout;
+      document.getElementById('filter-search').addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => fetchReports(), 300);
+      });
+
+      // Reset filters
+      document.getElementById('reset-filters-btn').addEventListener('click', () => {
+        document.getElementById('filter-month').value = 'all';
+        document.getElementById('filter-year').value = 'all';
+        document.getElementById('filter-zone').value = 'all';
+        document.getElementById('filter-circle').value = 'all';
+        document.getElementById('filter-unit').value = '';
+        document.getElementById('filter-program').value = 'all';
+        document.getElementById('filter-status').value = 'all';
+        document.getElementById('filter-search').value = '';
+        fetchReports();
+      });
+
+      // Tab switching listener to sync activeUserTypeTab and filter visibility
+      const unitTabEl = document.getElementById('unit-tab');
+      const circleTabEl = document.getElementById('circle-tab');
+      const zoneTabEl = document.getElementById('zone-tab');
+
+      if (unitTabEl) unitTabEl.addEventListener('shown.bs.tab', () => setActiveUserTypeTab('UnitUser'));
+      if (circleTabEl) circleTabEl.addEventListener('shown.bs.tab', () => setActiveUserTypeTab('CircleUser'));
+      if (zoneTabEl) zoneTabEl.addEventListener('shown.bs.tab', () => setActiveUserTypeTab('ZoneUser'));
+
+      // Export Buttons
+      document.getElementById('export-excel-btn').addEventListener('click', (e) => { e.preventDefault(); triggerExport('excel'); });
+      document.getElementById('export-pdf-btn').addEventListener('click', (e) => { e.preventDefault(); triggerExport('pdf'); });
+      document.getElementById('export-csv-btn').addEventListener('click', (e) => { e.preventDefault(); triggerExport('csv'); });
+
+      // Lightbox Controls
+      document.getElementById('lb-prev-btn').addEventListener('click', () => navigateLightbox(-1));
+      document.getElementById('lb-next-btn').addEventListener('click', () => navigateLightbox(1));
+      document.getElementById('lb-zoom-in').addEventListener('click', () => adjustZoom(0.2));
+      document.getElementById('lb-zoom-out').addEventListener('click', () => adjustZoom(-0.2));
+      document.getElementById('lb-zoom-reset').addEventListener('click', () => resetZoom());
+    });
+
+    function setActiveUserTypeTab(userType) {
+      activeUserTypeTab = userType;
+      const heading = document.getElementById('filter-heading-text');
+      const circleCol = document.getElementById('filter-circle-col');
+      const unitCol = document.getElementById('filter-unit-col');
+
+      if (userType === 'UnitUser') {
+        if (heading) heading.innerText = 'Filter Unit User Progress';
+        if (circleCol) circleCol.style.display = 'block';
+        if (unitCol) unitCol.style.display = 'block';
+      } else if (userType === 'CircleUser') {
+        if (heading) heading.innerText = 'Filter Circle User Progress';
+        if (circleCol) circleCol.style.display = 'block';
+        if (unitCol) unitCol.style.display = 'none';
+      } else if (userType === 'ZoneUser') {
+        if (heading) heading.innerText = 'Filter Zone User Progress';
+        if (circleCol) circleCol.style.display = 'none';
+        if (unitCol) unitCol.style.display = 'none';
+      }
+    }
+
+    function getFilterParams() {
+      const p = new URLSearchParams();
+      const m = document.getElementById('filter-month').value;
+      const y = document.getElementById('filter-year').value;
+      const z = document.getElementById('filter-zone').value;
+      const c = document.getElementById('filter-circle').value;
+      const u = document.getElementById('filter-unit').value.trim();
+      const prog = document.getElementById('filter-program').value;
+      const st = document.getElementById('filter-status').value;
+      const sr = document.getElementById('filter-search').value.trim();
+
+      if (m !== 'all') p.append('month', m);
+      if (y !== 'all') p.append('year', y);
+      if (z !== 'all') p.append('zone', z);
+      if (c !== 'all' && activeUserTypeTab !== 'ZoneUser') p.append('circle', c);
+      if (u && activeUserTypeTab === 'UnitUser') p.append('unit', u);
+      if (prog !== 'all') p.append('program', prog);
+      if (st !== 'all') p.append('status', st);
+      if (sr) p.append('search', sr);
+      return p;
+    }
+
+    async function fetchReports() {
+      try {
+        const params = getFilterParams();
+        const res = await fetch(`/api/admin/monthly-reports?${params.toString()}`);
+        const data = await res.json();
+        if (!data.success) return;
+
+        globalReportsData = data;
+
+        // Populate dropdowns once
+        populateFilterDropdowns(data.options);
+
+        // Update top summary cards
+        document.getElementById('card-total-programs').innerText = data.summary.totalPrograms;
+        document.getElementById('card-completed-programs').innerText = data.summary.completedPrograms;
+        document.getElementById('card-pending-programs').innerText = data.summary.pendingPrograms;
+        document.getElementById('card-total-participants').innerText = data.summary.totalParticipants;
+        document.getElementById('card-total-images').innerText = data.summary.totalImagesUploaded;
+        document.getElementById('card-this-month').innerText = data.summary.thisMonthCompletions;
+
+        // Update tab count badges
+        const unitList = data.unitCompletions || [];
+        const circleList = data.circleCompletions || [];
+        const zoneList = data.zoneCompletions || [];
+
+        document.getElementById('unit-count-badge').innerText = unitList.length;
+        document.getElementById('circle-count-badge').innerText = circleList.length;
+        document.getElementById('zone-count-badge').innerText = zoneList.length;
+
+        document.getElementById('unit-info-badge').innerText = `${unitList.length} records`;
+        document.getElementById('circle-info-badge').innerText = `${circleList.length} records`;
+        document.getElementById('zone-info-badge').innerText = `${zoneList.length} records`;
+
+        // Render the 3 separate progress tables independently
+        renderUserProgressTable('UnitUser', unitList, 'unit-table-body');
+        renderUserProgressTable('CircleUser', circleList, 'circle-table-body');
+        renderUserProgressTable('ZoneUser', zoneList, 'zone-table-body');
+
+        // Render Gallery & Analytics
+        renderGlobalGallery(data.gallery);
+        renderAnalyticsCharts(data.analytics);
+
+      } catch (err) {
+        console.error('Failed to fetch reports:', err);
+      }
+    }
+
+    function populateFilterDropdowns(options) {
+      if (!options) return;
+      const zoneSel = document.getElementById('filter-zone');
+      if (zoneSel && zoneSel.options.length <= 1 && options.zones) {
+        options.zones.forEach(z => {
+          const opt = document.createElement('option');
+          opt.value = z; opt.textContent = z;
+          zoneSel.appendChild(opt);
+        });
+      }
+
+      const circleSel = document.getElementById('filter-circle');
+      if (circleSel && circleSel.options.length <= 1 && options.circles) {
+        options.circles.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.name; opt.textContent = c.name;
+          circleSel.appendChild(opt);
+        });
+      }
+
+      const progSel = document.getElementById('filter-program');
+      if (progSel && progSel.options.length <= 1 && options.programs) {
+        options.programs.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id; opt.textContent = p.title;
+          progSel.appendChild(opt);
+        });
+      }
+
+      const yearSel = document.getElementById('filter-year');
+      if (yearSel && yearSel.options.length <= 1 && options.years) {
+        options.years.forEach(y => {
+          const opt = document.createElement('option');
+          opt.value = y; opt.textContent = y;
+          yearSel.appendChild(opt);
+        });
+      }
+    }
+
+    function sortTable(type, field) {
+      const state = tableStates[type];
+      if (state.sortField === field) {
+        state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        state.sortField = field;
+        state.sortDir = 'asc';
+      }
+      if (!globalReportsData) return;
+      const keyMap = { UnitUser: 'unitCompletions', CircleUser: 'circleCompletions', ZoneUser: 'zoneCompletions' };
+      const list = globalReportsData[keyMap[type]] || [];
+      renderUserProgressTable(type, list, type === 'UnitUser' ? 'unit-table-body' : (type === 'CircleUser' ? 'circle-table-body' : 'zone-table-body'));
+    }
+
+    function changePageSize(type, val) {
+      tableStates[type].pageSize = parseInt(val, 10);
+      tableStates[type].currentPage = 1;
+      if (!globalReportsData) return;
+      const keyMap = { UnitUser: 'unitCompletions', CircleUser: 'circleCompletions', ZoneUser: 'zoneCompletions' };
+      const list = globalReportsData[keyMap[type]] || [];
+      renderUserProgressTable(type, list, type === 'UnitUser' ? 'unit-table-body' : (type === 'CircleUser' ? 'circle-table-body' : 'zone-table-body'));
+    }
+
+    function goToPage(type, pageNum) {
+      tableStates[type].currentPage = pageNum;
+      if (!globalReportsData) return;
+      const keyMap = { UnitUser: 'unitCompletions', CircleUser: 'circleCompletions', ZoneUser: 'zoneCompletions' };
+      const list = globalReportsData[keyMap[type]] || [];
+      renderUserProgressTable(type, list, type === 'UnitUser' ? 'unit-table-body' : (type === 'CircleUser' ? 'circle-table-body' : 'zone-table-body'));
+    }
+
+    function renderUserProgressTable(type, rawItems, tbodyId) {
+      const tbody = document.getElementById(tbodyId);
+      const state = tableStates[type];
+
+      const colCount = type === 'UnitUser' ? 8 : (type === 'CircleUser' ? 7 : 6);
+
+      if (!rawItems || rawItems.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${colCount}" class="text-center py-4 text-muted">No progress records found for this user type.</td></tr>`;
+        updatePaginationUI(type, 0, 0, 0);
+        return;
+      }
+
+      // Sort items
+      const items = [...rawItems].sort((a, b) => {
+        let valA = a[state.sortField];
+        let valB = b[state.sortField];
+        if (typeof valA === 'string') valA = valA.toLowerCase();
+        if (typeof valB === 'string') valB = valB.toLowerCase();
+        if (valA < valB) return state.sortDir === 'asc' ? -1 : 1;
+        if (valA > valB) return state.sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      // Pagination slice
+      const total = items.length;
+      const totalPages = Math.ceil(total / state.pageSize) || 1;
+      if (state.currentPage > totalPages) state.currentPage = totalPages;
+
+      const startIdx = (state.currentPage - 1) * state.pageSize;
+      const endIdx = Math.min(startIdx + state.pageSize, total);
+      const pageItems = items.slice(startIdx, endIdx);
+
+      let html = '';
+      pageItems.forEach(item => {
+        const isComp = Boolean(item.completed);
+        const statusBadge = isComp
+          ? `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="ph ph-check-circle me-1"></i>Completed</span>`
+          : `<span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1"><i class="ph ph-clock me-1"></i>Pending</span>`;
+
+        const lastUpdDate = item.lastUpdated ? new Date(item.lastUpdated).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+
+        if (type === 'UnitUser') {
+          html += `
+            <tr>
+              <td class="fw-bold text-dark">${escapeHtml(item.programTitle)}</td>
+              <td>${escapeHtml(item.zone || '-')}</td>
+              <td>${escapeHtml(item.circle || '-')}</td>
+              <td><span class="fw-semibold text-primary">${escapeHtml(item.unit || item.completedBy || '-')}</span></td>
+              <td><code class="text-primary">${escapeHtml(item.username)}</code></td>
+              <td>${statusBadge}</td>
+              <td class="small text-muted">${lastUpdDate}</td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-outline-success rounded-pill px-3 d-inline-flex align-items-center gap-1" onclick="openDetailsModal('${item._id}')">
+                  <i class="ph ph-eye"></i> View Details
+                </button>
+              </td>
+            </tr>
+          `;
+        } else if (type === 'CircleUser') {
+          html += `
+            <tr>
+              <td class="fw-bold text-dark">${escapeHtml(item.programTitle)}</td>
+              <td>${escapeHtml(item.zone || '-')}</td>
+              <td><span class="fw-semibold text-warning">${escapeHtml(item.circle || item.completedBy || '-')}</span></td>
+              <td><code class="text-primary">${escapeHtml(item.username)}</code></td>
+              <td>${statusBadge}</td>
+              <td class="small text-muted">${lastUpdDate}</td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-outline-success rounded-pill px-3 d-inline-flex align-items-center gap-1" onclick="openDetailsModal('${item._id}')">
+                  <i class="ph ph-eye"></i> View Details
+                </button>
+              </td>
+            </tr>
+          `;
+        } else if (type === 'ZoneUser') {
+          html += `
+            <tr>
+              <td class="fw-bold text-dark">${escapeHtml(item.programTitle)}</td>
+              <td><span class="fw-semibold text-purple" style="color:#6b21a8;">${escapeHtml(item.zone || item.completedBy || '-')}</span></td>
+              <td><code class="text-primary">${escapeHtml(item.username)}</code></td>
+              <td>${statusBadge}</td>
+              <td class="small text-muted">${lastUpdDate}</td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-outline-success rounded-pill px-3 d-inline-flex align-items-center gap-1" onclick="openDetailsModal('${item._id}')">
+                  <i class="ph ph-eye"></i> View Details
+                </button>
+              </td>
+            </tr>
+          `;
+        }
+      });
+
+      tbody.innerHTML = html;
+      updatePaginationUI(type, startIdx + 1, endIdx, total);
+    }
+
+    function updatePaginationUI(type, start, end, total) {
+      const typeLower = type.toLowerCase().replace('user', '');
+      const infoEl = document.getElementById(`${typeLower}-pagination-info`);
+      const pagEl = document.getElementById(`${typeLower}-pagination`);
+      const state = tableStates[type];
+
+      if (infoEl) infoEl.innerText = `Showing ${total === 0 ? 0 : start} to ${end} of ${total} entries`;
+      if (!pagEl) return;
+
+      const totalPages = Math.ceil(total / state.pageSize) || 1;
+      let pagHtml = '';
+
+      pagHtml += `<li class="page-item ${state.currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); goToPage('${type}', ${state.currentPage - 1})">Prev</a></li>`;
+
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= state.currentPage - 1 && i <= state.currentPage + 1)) {
+          pagHtml += `<li class="page-item ${i === state.currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); goToPage('${type}', ${i})">${i}</a></li>`;
+        } else if (i === state.currentPage - 2 || i === state.currentPage + 2) {
+          pagHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+      }
+
+      pagHtml += `<li class="page-item ${state.currentPage === totalPages || total === 0 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); goToPage('${type}', ${state.currentPage + 1})">Next</a></li>`;
+      pagEl.innerHTML = pagHtml;
+    }
+
+    function openDetailsModal(id) {
+      if (!globalReportsData) return;
+      const item = globalReportsData.completions.find(c => c._id === id);
+      if (!item) return;
+
+      document.getElementById('modal-program-title').innerText = item.programTitle;
+      document.getElementById('modal-status-badge').innerText = item.completed ? 'Completed' : 'Pending';
+      document.getElementById('modal-status-badge').className = item.completed ? 'badge bg-success px-3 py-2 fs-6' : 'badge bg-warning text-dark px-3 py-2 fs-6';
+
+      document.getElementById('modal-prog-desc').innerText = item.programDescription || 'No description available.';
+      document.getElementById('modal-due-date').innerText = item.dueDate ? new Date(item.dueDate).toLocaleDateString() : 'N/A';
+      document.getElementById('modal-target').innerText = item.requiredCount;
+      document.getElementById('modal-actual').innerText = item.completionCount;
+
+      document.getElementById('modal-user-name').innerText = item.completedBy;
+      document.getElementById('modal-username').innerText = item.username;
+      document.getElementById('modal-usertype-badge').innerText = item.userType;
+
+      // Adapt User Info card rows based on User Type
+      const isCircle = item.userType.includes('Circle');
+      const isZone = item.userType.includes('Zone');
+
+      document.getElementById('modal-zone-row').style.display = 'block';
+      document.getElementById('modal-zone').innerText = item.zone || 'N/A';
+
+      if (isZone) {
+        document.getElementById('modal-circle-row').style.display = 'none';
+        document.getElementById('modal-unit-row').style.display = 'none';
+      } else if (isCircle) {
+        document.getElementById('modal-circle-row').style.display = 'block';
+        document.getElementById('modal-circle').innerText = item.circle || 'N/A';
+        document.getElementById('modal-unit-row').style.display = 'none';
+      } else {
+        document.getElementById('modal-circle-row').style.display = 'block';
+        document.getElementById('modal-circle').innerText = item.circle || 'N/A';
+        document.getElementById('modal-unit-row').style.display = 'block';
+        document.getElementById('modal-unit').innerText = item.unit || 'N/A';
+      }
+
+      document.getElementById('modal-participants-count').innerText = item.participantsCount;
+      document.getElementById('modal-comp-date').innerText = item.completionDate ? new Date(item.completionDate).toLocaleDateString() : '-';
+      document.getElementById('modal-photos-count').innerText = item.imagesCount;
+      document.getElementById('modal-notes').innerText = item.notes || 'No remarks submitted.';
+
+      // Timeline
+      const tContainer = document.getElementById('modal-timeline-container');
+      if (!item.timeline || item.timeline.length === 0) {
+        tContainer.innerHTML = '<div class="text-muted small">No timeline events recorded.</div>';
+      } else {
+        let tHtml = '';
+        item.timeline.forEach(t => {
+          const tTime = t.timestamp ? new Date(t.timestamp).toLocaleString() : '';
+          tHtml += `
+            <div class="timeline-item">
+              <div class="timeline-badge"><i class="ph ph-check"></i></div>
+              <div class="timeline-content">
+                <div class="timeline-title">${escapeHtml(t.title)}</div>
+                <div class="timeline-time">${tTime}</div>
+                <div class="small text-muted mt-1">${escapeHtml(t.description)}</div>
+              </div>
+            </div>
+          `;
+        });
+        tContainer.innerHTML = tHtml;
+      }
+
+      // Modal Images Grid
+      const mGrid = document.getElementById('modal-images-grid');
+      if (!item.images || item.images.length === 0) {
+        mGrid.innerHTML = '<div class="text-muted small">No evidence photos attached.</div>';
+      } else {
+        let gHtml = '';
+        item.images.forEach((img, idx) => {
+          gHtml += `
+            <div class="gallery-card" onclick="openLightboxForImages(${JSON.stringify(item.images).replace(/"/g, '&quot;')}, ${idx})">
+              <div class="gallery-img-wrapper">
+                <img src="${img.url}" alt="${img.filename}" onerror="this.src='https://via.placeholder.com/300x200?text=Image+Unavailable'">
+              </div>
+              <div class="gallery-card-body">
+                <div class="uploader-name">${escapeHtml(img.uploadedBy)}</div>
+                <div class="uploader-meta">${img.uploadDate} at ${img.uploadTime}</div>
+              </div>
+            </div>
+          `;
+        });
+        mGrid.innerHTML = gHtml;
+      }
+
+      const modalElem = new bootstrap.Modal(document.getElementById('detailsModal'));
+      modalElem.show();
+    }
+
+    function renderGlobalGallery(galleryItems) {
+      currentGalleryImages = galleryItems || [];
+      document.getElementById('gallery-count-badge').innerText = currentGalleryImages.length;
+      document.getElementById('gallery-total-info').innerText = `Showing ${currentGalleryImages.length} uploaded photo(s)`;
+
+      const container = document.getElementById('gallery-grid-container');
+      if (!currentGalleryImages || currentGalleryImages.length === 0) {
+        container.innerHTML = '<div class="text-muted py-4">No uploaded images matching current filter criteria.</div>';
+        return;
+      }
+
+      let html = '';
+      currentGalleryImages.forEach((img, idx) => {
+        html += `
+          <div class="gallery-card" onclick="openLightboxForImages(currentGalleryImages, ${idx})">
+            <div class="gallery-img-wrapper">
+              <img src="${img.url}" alt="${img.filename}" onerror="this.src='https://via.placeholder.com/300x200?text=Photo'">
+            </div>
+            <div class="gallery-card-body">
+              <div class="uploader-name">${escapeHtml(img.uploadedBy)}</div>
+              <div class="uploader-meta">
+                <div><code class="text-primary">${escapeHtml(img.username)}</code> (${escapeHtml(img.userType)})</div>
+                <div>${escapeHtml(img.zone)} / ${escapeHtml(img.circle)}</div>
+                <div class="fw-semibold text-dark mt-1">${escapeHtml(img.programTitle)}</div>
+                <div class="text-muted mt-1" style="font-size:0.7rem;">${img.uploadDate} ${img.uploadTime}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function openLightboxForImages(imagesList, index) {
+      currentGalleryImages = imagesList;
+      currentLightboxIdx = index;
+      resetZoom();
+      updateLightboxContent();
+      const lbModal = new bootstrap.Modal(document.getElementById('lightboxModal'));
+      lbModal.show();
+    }
+
+    function updateLightboxContent() {
+      if (!currentGalleryImages || currentGalleryImages.length === 0) return;
+      const img = currentGalleryImages[currentLightboxIdx];
+
+      document.getElementById('lb-main-img').src = img.url;
+      document.getElementById('lb-image-counter').innerText = `Image ${currentLightboxIdx + 1} of ${currentGalleryImages.length}`;
+
+      document.getElementById('lb-uploader-name').innerText = img.uploadedBy || 'User';
+      document.getElementById('lb-username').innerText = img.username || '-';
+      document.getElementById('lb-user-type').innerText = img.userType || 'Unit User';
+      document.getElementById('lb-location').innerText = `${img.zone || '-'} / ${img.circle || '-'} / ${img.unit || '-'}`;
+      document.getElementById('lb-program-name').innerText = img.programTitle || 'Program';
+      document.getElementById('lb-upload-timestamp').innerText = `${img.uploadDate || ''} at ${img.uploadTime || ''}`;
+    }
+
+    function navigateLightbox(dir) {
+      if (!currentGalleryImages || currentGalleryImages.length === 0) return;
+      currentLightboxIdx = (currentLightboxIdx + dir + currentGalleryImages.length) % currentGalleryImages.length;
+      resetZoom();
+      updateLightboxContent();
+    }
+
+    function adjustZoom(delta) {
+      zoomScale = Math.max(0.5, Math.min(3, zoomScale + delta));
+      document.getElementById('lb-main-img').style.transform = `scale(${zoomScale})`;
+    }
+
+    function resetZoom() {
+      zoomScale = 1;
+      const img = document.getElementById('lb-main-img');
+      if (img) img.style.transform = 'scale(1)';
+    }
+
+    function renderAnalyticsCharts(analytics) {
+      if (!analytics) return;
+
+      // 1. Monthly Trends Chart
+      const ctxM = document.getElementById('monthlyTrendChart').getContext('2d');
+      if (chartMonthly) chartMonthly.destroy();
+      chartMonthly = new Chart(ctxM, {
+        type: 'bar',
+        data: {
+          labels: analytics.monthlyTrends.map(m => m.month),
+          datasets: [
+            { label: 'Completed Programs', data: analytics.monthlyTrends.map(m => m.completed), backgroundColor: '#14533e', borderRadius: 6 },
+            { label: 'Participants', data: analytics.monthlyTrends.map(m => m.participants), backgroundColor: '#0284c7', borderRadius: 6, yAxisID: 'y1', type: 'line' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Completions' } },
+            y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Participants' } }
+          }
+        }
+      });
+
+      // 2. User Type Chart
+      const ctxU = document.getElementById('userTypeChart').getContext('2d');
+      if (chartUserType) chartUserType.destroy();
+      chartUserType = new Chart(ctxU, {
+        type: 'doughnut',
+        data: {
+          labels: analytics.userTypeAnalytics.map(u => u.type),
+          datasets: [{
+            data: analytics.userTypeAnalytics.map(u => u.count),
+            backgroundColor: ['#0369a1', '#b45309', '#6b21a8', '#14533e']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // 3. Zone Chart
+      const ctxZ = document.getElementById('zoneChart').getContext('2d');
+      if (chartZone) chartZone.destroy();
+      chartZone = new Chart(ctxZ, {
+        type: 'bar',
+        data: {
+          labels: analytics.zoneAnalytics.map(z => z.zone),
+          datasets: [{
+            label: 'Completed Programs',
+            data: analytics.zoneAnalytics.map(z => z.completed),
+            backgroundColor: '#16a34a',
+            borderRadius: 6
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y' }
+      });
+
+      // 4. Circle Chart
+      const ctxC = document.getElementById('circleChart').getContext('2d');
+      if (chartCircle) chartCircle.destroy();
+      chartCircle = new Chart(ctxC, {
+        type: 'bar',
+        data: {
+          labels: analytics.circleAnalytics.map(c => c.circle),
+          datasets: [{
+            label: 'Completed Programs',
+            data: analytics.circleAnalytics.map(c => c.completed),
+            backgroundColor: '#d97706',
+            borderRadius: 6
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    function triggerExport(type) {
+      const params = getFilterParams();
+      if (activeUserTypeTab) {
+        params.set('userType', activeUserTypeTab);
+        params.set('userRole', activeUserTypeTab);
+      }
+      window.location.href = `/api/admin/monthly-reports/export/${type}?${params.toString()}`;
+    }
+
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+
+</html>

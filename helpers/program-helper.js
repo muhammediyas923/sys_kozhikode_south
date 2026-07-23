@@ -109,6 +109,18 @@ async function updateProgram(id, data, files) {
   };
 
   if (assignTo.length > 0) {
+    const existingProg = await database.collection(collections.PROGRAMS_COLLECTION).findOne({ _id: new ObjectId(id) });
+    if (existingProg && existingProg.assignTo) {
+      const existingAssign = Array.isArray(existingProg.assignTo) ? existingProg.assignTo[0] : existingProg.assignTo;
+      const newAssign = assignTo[0];
+      if (existingAssign && existingAssign !== newAssign) {
+        const compCount = await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION).countDocuments({ programId: new ObjectId(id) });
+        const updCount = await database.collection(collections.PROGRAM_UPDATES_COLLECTION).countDocuments({ programId: new ObjectId(id) });
+        if (compCount > 0 || updCount > 0) {
+          throw new Error('Cannot change assigned user type because completion records already exist for this program.');
+        }
+      }
+    }
     update.$set.assignTo = assignTo;
   }
 
@@ -276,7 +288,11 @@ async function getProgramsWithCompletion(userId, options = {}) {
   let programs = options.publishedOnly ? await getPublishedPrograms() : await getAllPrograms();
 
   if (options.userRole) {
-    programs = programs.filter(p => !p.assignTo || p.assignTo.includes(options.userRole) || p.assignTo.length === 0);
+    programs = programs.filter(p => {
+      if (!p.assignTo || p.assignTo.length === 0) return false;
+      const roleVal = Array.isArray(p.assignTo) ? p.assignTo[0] : p.assignTo;
+      return roleVal === options.userRole;
+    });
   }
 
   const completions = await getUserCompletions(userId);
@@ -310,7 +326,15 @@ async function getProgramsWithCompletion(userId, options = {}) {
 
 async function getAggregatePrograms(userRole, userDetails) {
   const database = db.getDb();
-  const programs = await getPublishedPrograms();
+  let programs = await getPublishedPrograms();
+
+  if (userRole) {
+    programs = programs.filter(p => {
+      if (!p.assignTo || p.assignTo.length === 0) return false;
+      const roleVal = Array.isArray(p.assignTo) ? p.assignTo[0] : p.assignTo;
+      return roleVal === userRole;
+    });
+  }
 
   // Find all units in the scope to calculate the target correctly.
   const unitQuery = { role: 'UnitUser' };
@@ -741,4 +765,480 @@ module.exports = {
   deleteProgramUpdate,
   editProgramUpdate,
   getAggregatePrograms,
+  getMonthlyCompletionReports,
 };
+
+async function getMonthlyCompletionReports(filters = {}) {
+  const database = db.getDb();
+
+  // 1. Fetch options for filter dropdowns
+  const zonesDocs = await database.collection(collections.ZONES_COLLECTION).find().sort({ name: 1 }).toArray();
+  const circlesDocs = await database.collection(collections.CIRCLES_COLLECTION).find().sort({ name: 1 }).toArray();
+  const programsDocs = await database.collection(collections.PROGRAMS_COLLECTION).find({ published: true }).sort({ title: 1 }).toArray();
+
+  const zoneNames = zonesDocs.map(z => z.name).filter(Boolean);
+  const circleOptions = circlesDocs.map(c => ({ name: c.name, zoneName: c.zoneName || '' }));
+  const programOptions = programsDocs.map(p => ({ id: p._id.toString(), title: p.title }));
+
+  // Collect distinct years from programs, completions, updates
+  const yearSet = new Set([new Date().getFullYear(), 2026, 2027, 2028]);
+
+  // 2. Fetch Users of all types
+  const unitUsers = await database.collection(collections.USERS_COLLECTION).find({ role: 'UnitUser' }).toArray();
+  
+  // Circle users from circles collection + users collection
+  const circleUsers = [];
+  const existingCircleUsernames = new Set();
+  circlesDocs.forEach(c => {
+    if (c.username) {
+      existingCircleUsernames.add(c.username);
+      circleUsers.push({
+        _id: c._id.toString(),
+        username: c.username,
+        name: c.name,
+        unitName: c.name,
+        role: 'CircleUser',
+        zone: c.zoneName || '',
+        circle: c.name,
+        status: c.status || 'Active'
+      });
+    }
+  });
+
+  const dbCircleUsers = await database.collection(collections.USERS_COLLECTION).find({ role: 'CircleUser' }).toArray();
+  dbCircleUsers.forEach(u => {
+    if (!existingCircleUsernames.has(u.username)) {
+      circleUsers.push(u);
+    }
+  });
+
+  // Zone users from zones collection + users collection
+  const zoneUsers = [];
+  const existingZoneUsernames = new Set();
+  zonesDocs.forEach(z => {
+    if (z.username) {
+      existingZoneUsernames.add(z.username);
+      zoneUsers.push({
+        _id: z._id.toString(),
+        username: z.username,
+        name: z.name,
+        unitName: z.name,
+        role: 'ZoneUser',
+        zone: z.name,
+        circle: 'All Circles',
+        status: z.status || 'Active'
+      });
+    }
+  });
+
+  const dbZoneUsers = await database.collection(collections.USERS_COLLECTION).find({ role: 'ZoneUser' }).toArray();
+  dbZoneUsers.forEach(u => {
+    if (!existingZoneUsernames.has(u.username)) {
+      zoneUsers.push(u);
+    }
+  });
+
+  const allUsers = [...unitUsers, ...circleUsers, ...zoneUsers];
+
+  // 3. Fetch completions & updates
+  const rawCompletions = await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION).find().toArray();
+  const rawUpdates = await database.collection(collections.PROGRAM_UPDATES_COLLECTION).find().sort({ createdAt: 1 }).toArray();
+
+  // Maps for fast lookup
+  const completionMap = new Map(rawCompletions.map(c => [`${c.userId}_${c.programId.toString()}`, c]));
+
+  const updatesMap = new Map();
+  rawUpdates.forEach(upd => {
+    const key = `${upd.userId}_${upd.programId.toString()}`;
+    if (!updatesMap.has(key)) updatesMap.set(key, []);
+    updatesMap.get(key).push(upd);
+
+    if (upd.createdAt) {
+      yearSet.add(new Date(upd.createdAt).getFullYear());
+    }
+  });
+
+  rawCompletions.forEach(c => {
+    if (c.completedAt) yearSet.add(new Date(c.completedAt).getFullYear());
+    if (c.completionDate) yearSet.add(new Date(c.completionDate).getFullYear());
+  });
+
+  const yearOptions = Array.from(yearSet).sort((a, b) => b - a);
+
+  // 4. Construct unified report rows
+  const allReportRows = [];
+  const globalGallery = [];
+
+  allUsers.forEach(user => {
+    const userRole = user.role || 'UnitUser';
+    const userIdStr = user._id.toString();
+
+    // Check which programs apply to this user
+    const eligiblePrograms = programsDocs.filter(p => {
+      if (!p.assignTo || p.assignTo.length === 0) return true;
+      return p.assignTo.includes(userRole);
+    });
+
+    eligiblePrograms.forEach(prog => {
+      const progIdStr = prog._id.toString();
+      const key = `${userIdStr}_${progIdStr}`;
+      const completion = completionMap.get(key);
+      const updates = updatesMap.get(key) || [];
+
+      const target = prog.requiredCount || 1;
+      let completionCount = 0;
+      let participantsCount = 0;
+      let lastUpdated = completion ? (completion.updatedAt || completion.completedAt) : null;
+      let completionDate = completion ? completion.completionDate : null;
+      const notesList = [];
+      const itemImages = [];
+      const timelineEvents = [
+        {
+          title: 'Program Published',
+          timestamp: prog.publishedAt || prog.createdAt || new Date(),
+          description: `Target requirement: ${target} time(s).`
+        }
+      ];
+
+      // Process updates
+      updates.forEach((upd, idx) => {
+        completionCount += (upd.completionCount || 1);
+        participantsCount += (upd.participantsCount || 0);
+        if (upd.notes) notesList.push(upd.notes);
+        if (!lastUpdated || new Date(upd.createdAt) > new Date(lastUpdated)) {
+          lastUpdated = upd.createdAt;
+        }
+        if (!completionDate || new Date(upd.completionDate) > new Date(completionDate)) {
+          completionDate = upd.completionDate;
+        }
+
+        // Timeline event
+        timelineEvents.push({
+          title: `Update #${idx + 1} Submitted`,
+          timestamp: upd.createdAt || upd.completionDate || new Date(),
+          description: `Logged ${upd.completionCount || 1} completion(s) & ${upd.participantsCount || 0} participant(s). ${upd.notes ? 'Remarks: ' + upd.notes : ''}`
+        });
+
+        // Image details
+        if (upd.images && upd.images.length) {
+          upd.images.forEach(img => {
+            const imgDateObj = upd.createdAt ? new Date(upd.createdAt) : new Date();
+            const photoMeta = {
+              url: img.url,
+              filename: img.filename || img.originalName || 'Photo',
+              uploadedBy: user.unitName || user.circle || user.zone || user.name || user.username,
+              username: user.username,
+              userType: userRole === 'UnitUser' ? 'Unit User' : (userRole === 'CircleUser' ? 'Circle User' : 'Zone User'),
+              zone: user.zone || completion?.zone || '-',
+              circle: user.circle || completion?.circle || '-',
+              unit: user.unitName || completion?.unitName || '-',
+              programTitle: prog.title,
+              programId: progIdStr,
+              uploadDate: imgDateObj.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
+              uploadTime: imgDateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+              rawDate: imgDateObj
+            };
+            itemImages.push(photoMeta);
+          });
+        }
+      });
+
+      // If completion record exists without separate updates array
+      if (updates.length === 0 && completion) {
+        completionCount = completion.completionCount || (completion.completed ? target : 0);
+        participantsCount = completion.participantsCount || 0;
+        if (completion.notes) notesList.push(completion.notes);
+        if (completion.images && completion.images.length) {
+          completion.images.forEach(img => {
+            const imgDateObj = completion.completedAt ? new Date(completion.completedAt) : new Date();
+            itemImages.push({
+              url: img.url,
+              filename: img.filename || 'Photo',
+              uploadedBy: user.unitName || user.circle || user.zone || user.name || user.username,
+              username: user.username,
+              userType: userRole === 'UnitUser' ? 'Unit User' : (userRole === 'CircleUser' ? 'Circle User' : 'Zone User'),
+              zone: user.zone || completion.zone || '-',
+              circle: user.circle || completion.circle || '-',
+              unit: user.unitName || completion.unitName || '-',
+              programTitle: prog.title,
+              programId: progIdStr,
+              uploadDate: imgDateObj.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
+              uploadTime: imgDateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+              rawDate: imgDateObj
+            });
+          });
+        }
+      }
+
+      const isCompleted = target > 0 && completionCount >= target;
+      const remaining = Math.max(0, target - completionCount);
+      const progressPct = target > 0 ? Math.min(100, Math.round((completionCount / target) * 100)) : 0;
+
+      if (isCompleted) {
+        timelineEvents.push({
+          title: 'Program Completed',
+          timestamp: completion?.completedAt || lastUpdated || new Date(),
+          description: 'Program completion target fully achieved!'
+        });
+      }
+
+      const row = {
+        _id: key,
+        programId: progIdStr,
+        programTitle: prog.title,
+        programDescription: prog.description || '',
+        dueDate: prog.dueDate,
+        requiredCount: target,
+        target,
+        completionCount,
+        remaining,
+        progressPct,
+        completed: isCompleted,
+        completedBy: user.unitName || user.circle || user.zone || user.name || user.username,
+        username: user.username,
+        userType: userRole === 'UnitUser' ? 'Unit User' : (userRole === 'CircleUser' ? 'Circle User' : 'Zone User'),
+        userRole,
+        zone: user.zone || completion?.zone || '',
+        circle: user.circle || completion?.circle || '',
+        unit: user.unitName || completion?.unitName || '',
+        participantsCount,
+        completionDate: completionDate || lastUpdated,
+        lastUpdated: lastUpdated || prog.createdAt,
+        imagesCount: itemImages.length,
+        notes: notesList.join(' | '),
+        images: itemImages,
+        timeline: timelineEvents
+      };
+
+      allReportRows.push(row);
+      if (itemImages.length > 0) {
+        globalGallery.push(...itemImages);
+      }
+    });
+  });
+
+  // 5. Apply filters
+  let filteredRows = allReportRows;
+
+  if (filters.month && filters.month !== 'all') {
+    const targetMonth = parseInt(filters.month, 10);
+    filteredRows = filteredRows.filter(r => {
+      const d = r.completionDate || r.lastUpdated;
+      return d ? (new Date(d).getMonth() + 1) === targetMonth : false;
+    });
+  }
+
+  if (filters.year && filters.year !== 'all') {
+    const targetYear = parseInt(filters.year, 10);
+    filteredRows = filteredRows.filter(r => {
+      const d = r.completionDate || r.lastUpdated;
+      return d ? new Date(d).getFullYear() === targetYear : false;
+    });
+  }
+
+  if (filters.zone && filters.zone !== 'all') {
+    filteredRows = filteredRows.filter(r => r.zone.toLowerCase() === filters.zone.toLowerCase());
+  }
+
+  if (filters.circle && filters.circle !== 'all') {
+    filteredRows = filteredRows.filter(r => r.circle.toLowerCase() === filters.circle.toLowerCase());
+  }
+
+  if (filters.unit && filters.unit.trim()) {
+    const uTerm = filters.unit.trim().toLowerCase();
+    filteredRows = filteredRows.filter(r => r.unit.toLowerCase().includes(uTerm) || r.completedBy.toLowerCase().includes(uTerm));
+  }
+
+  if (filters.program && filters.program !== 'all') {
+    filteredRows = filteredRows.filter(r => r.programId === filters.program);
+  }
+
+  if (filters.status && filters.status !== 'all') {
+    if (filters.status === 'completed') {
+      filteredRows = filteredRows.filter(r => r.completed === true);
+    } else if (filters.status === 'pending') {
+      filteredRows = filteredRows.filter(r => r.completed === false);
+    }
+  }
+
+  if (filters.userRole || filters.userType) {
+    const targetRole = filters.userRole || filters.userType;
+    if (targetRole !== 'all') {
+      filteredRows = filteredRows.filter(r => r.userRole === targetRole || r.userType.replace(' ', '') === targetRole);
+    }
+  }
+
+  if (filters.search && filters.search.trim()) {
+    const q = filters.search.trim().toLowerCase();
+    filteredRows = filteredRows.filter(r =>
+      r.programTitle.toLowerCase().includes(q) ||
+      r.completedBy.toLowerCase().includes(q) ||
+      r.username.toLowerCase().includes(q) ||
+      r.zone.toLowerCase().includes(q) ||
+      r.circle.toLowerCase().includes(q) ||
+      r.unit.toLowerCase().includes(q)
+    );
+  }
+
+  // 6. Separate by user role
+  const unitCompletions = filteredRows.filter(r => r.userRole === 'UnitUser');
+  const circleCompletions = filteredRows.filter(r => r.userRole === 'CircleUser');
+  const zoneCompletions = filteredRows.filter(r => r.userRole === 'ZoneUser');
+
+  // Filter gallery images corresponding to filtered rows
+  const filteredGallery = [];
+  filteredRows.forEach(r => {
+    if (r.images && r.images.length) {
+      filteredGallery.push(...r.images);
+    }
+  });
+
+  // 7. Calculate Summary Cards
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const totalProgramsCount = programsDocs.length;
+  const completedProgramsCount = filteredRows.filter(r => r.completed).length;
+  const pendingProgramsCount = filteredRows.filter(r => !r.completed).length;
+  const totalParticipantsSum = filteredRows.reduce((acc, r) => acc + (r.participantsCount || 0), 0);
+  const totalImagesCount = filteredGallery.length;
+
+  const thisMonthCompletionsCount = filteredRows.filter(r => {
+    if (!r.completed || !r.completionDate) return false;
+    const d = new Date(r.completionDate);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  }).length;
+
+  // 8. Calculate Monthly Analytics
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthlyTrendsMap = {};
+  monthNames.forEach(m => { monthlyTrendsMap[m] = { month: m, completed: 0, participants: 0 }; });
+
+  filteredRows.forEach(r => {
+    if (r.completionDate) {
+      const d = new Date(r.completionDate);
+      const mName = monthNames[d.getMonth()];
+      if (monthlyTrendsMap[mName]) {
+        if (r.completed) monthlyTrendsMap[mName].completed += 1;
+        monthlyTrendsMap[mName].participants += (r.participantsCount || 0);
+      }
+    }
+  });
+
+  const monthlyTrends = Object.values(monthlyTrendsMap);
+
+  const userTypeAnalytics = [
+    { type: 'Unit Users', count: unitCompletions.filter(r => r.completed).length },
+    { type: 'Circle Users', count: circleCompletions.filter(r => r.completed).length },
+    { type: 'Zone Users', count: zoneCompletions.filter(r => r.completed).length }
+  ];
+
+  const zoneMap = {};
+  filteredRows.forEach(r => {
+    if (r.zone && r.completed) {
+      zoneMap[r.zone] = (zoneMap[r.zone] || 0) + 1;
+    }
+  });
+  const zoneAnalytics = Object.keys(zoneMap).map(z => ({ zone: z, completed: zoneMap[z] }));
+
+  const circleMap = {};
+  filteredRows.forEach(r => {
+    if (r.circle && r.circle !== '-' && r.completed) {
+      circleMap[r.circle] = (circleMap[r.circle] || 0) + 1;
+    }
+  });
+  const circleAnalytics = Object.keys(circleMap).map(c => ({ circle: c, completed: circleMap[c] }));
+
+  return {
+    success: true,
+    summary: {
+      totalPrograms: totalProgramsCount,
+      completedPrograms: completedProgramsCount,
+      pendingPrograms: pendingProgramsCount,
+      totalParticipants: totalParticipantsSum,
+      totalImagesUploaded: totalImagesCount,
+      thisMonthCompletions: thisMonthCompletionsCount
+    },
+    options: {
+      zones: zoneNames,
+      circles: circleOptions,
+      programs: programOptions,
+      years: yearOptions
+    },
+    unitCompletions,
+    circleCompletions,
+    zoneCompletions,
+    completions: filteredRows,
+    gallery: filteredGallery,
+    analytics: {
+      monthlyTrends,
+      userTypeAnalytics,
+      zoneAnalytics,
+      circleAnalytics
+    }
+  };
+}
+
+async function getGroupedCompletionStats(programId) {
+  const database = db.getDb();
+  let pid;
+  try { pid = new ObjectId(programId); } catch (e) { pid = programId; }
+
+  const completions = await database.collection(collections.PROGRAM_COMPLETIONS_COLLECTION)
+    .find({ programId: pid })
+    .toArray();
+
+  const unitCompletions = [];
+  const circleCompletions = [];
+  const zoneCompletions = [];
+
+  for (const c of completions) {
+    let u = null;
+    if (c.userId) {
+      try {
+        u = await database.collection(collections.USERS_COLLECTION).findOne({ _id: new ObjectId(c.userId) });
+      } catch (e) { /* ignore */ }
+    }
+    const role = u ? u.role : (c.userType || 'UnitUser');
+    const item = {
+      ...c,
+      username: u ? u.username : c.username,
+      unitName: u ? u.unitName : c.unitName,
+      circle: u ? u.circle : c.circle,
+      zone: u ? u.zone : c.zone,
+      userType: role
+    };
+    if (role === 'ZoneUser') zoneCompletions.push(item);
+    else if (role === 'CircleUser') circleCompletions.push(item);
+    else unitCompletions.push(item);
+  }
+
+  return { unitCompletions, circleCompletions, zoneCompletions };
+}
+
+module.exports = {
+  getAllPrograms,
+  getPublishedPrograms,
+  getProgramById,
+  createProgram,
+  updateProgram,
+  publishProgram,
+  unpublishProgram,
+  deleteProgram,
+  markCompletion,
+  setCompletion,
+  submitCompletion,
+  getUserCompletions,
+  getProgramsWithCompletion,
+  getProgramCompletionDetails,
+  getGroupedCompletionStats,
+  getDashboardAnalytics,
+  getCompletionReport,
+  getProgramUpdates,
+  deleteProgramUpdate,
+  editProgramUpdate,
+  getAggregatePrograms,
+  getMonthlyCompletionReports,
+};
+
