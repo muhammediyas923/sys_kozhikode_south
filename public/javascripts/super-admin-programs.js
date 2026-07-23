@@ -10,9 +10,36 @@ document.addEventListener('DOMContentLoaded', () => {
   const fileInput = document.getElementById('file-input');
   const fileList = document.getElementById('file-list');
 
+  function fetchApi(url, options = {}) {
+    const separator = url.includes('?') ? '&' : '?';
+    const cacheBustUrl = `${url}${separator}_t=${Date.now()}`;
+    return fetch(cacheBustUrl, {
+      ...options,
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        ...(options.headers || {})
+      }
+    });
+  }
+
   async function fetchPrograms() {
+    const tbody = document.getElementById('programs-table-body');
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6">
+            <div class="ds-loading-overlay">
+              <div class="ds-spinner"></div>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
     try {
-      const resp = await fetch('/api/admin/programs');
+      const resp = await fetchApi('/api/admin/programs');
       const data = await resp.json();
       if (data.success) {
         programs = data.programs;
@@ -20,9 +47,26 @@ document.addEventListener('DOMContentLoaded', () => {
         updateProgramCount();
       } else {
         showToast(data.message || 'Failed to load programs.', 'danger');
+        renderErrorState(data.message || 'Failed to load programs.');
       }
     } catch (err) {
       showToast('Error loading programs.', 'danger');
+      renderErrorState('Error connecting to server. Please try again.');
+    }
+  }
+
+  function renderErrorState(msg) {
+    const tbody = document.getElementById('programs-table-body');
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" class="text-center py-4 text-danger">
+            <div><i class="ph ph-warning-circle me-1" style="font-size:1.2rem;"></i> ${msg}</div>
+            <button class="ds-btn ds-btn-outline ds-btn-sm mt-2" id="retry-fetch-btn"><i class="ph ph-arrow-clockwise"></i> Retry</button>
+          </td>
+        </tr>
+      `;
+      document.getElementById('retry-fetch-btn')?.addEventListener('click', fetchPrograms);
     }
   }
 
@@ -69,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const id = btn.dataset.id;
         editingProgramId = id;
         try {
-          const resp = await fetch(`/api/admin/programs`);
+          const resp = await fetchApi('/api/admin/programs');
           const data = await resp.json();
           if (data.success) {
             const p = data.programs.find(item => item._id === id);
@@ -86,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
               // Check if completions exist to lock assignTo selection
               try {
-                const compResp = await fetch(`/api/admin/programs/${id}/completions`);
+                const compResp = await fetchApi(`/api/admin/programs/${id}/completions`);
                 const compData = await compResp.json();
                 const hasCompletions = compData.completions && compData.completions.length > 0;
                 const radios = document.querySelectorAll('input[name="assignTo"]');
@@ -125,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isPublished = btn.dataset.published === 'true';
         const endpoint = isPublished ? 'unpublish' : 'publish';
         try {
-          const resp = await fetch(`/api/admin/programs/${id}/${endpoint}`, { method: 'POST' });
+          const resp = await fetchApi(`/api/admin/programs/${id}/${endpoint}`, { method: 'POST' });
           const data = await resp.json();
           if (data.success) {
             showToast(isPublished ? 'Program unpublished (moved to drafts).' : 'Program published to assigned user type!', 'success');
@@ -263,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const url = editingProgramId ? `/api/admin/programs/${editingProgramId}` : '/api/admin/programs';
       const method = editingProgramId ? 'PUT' : 'POST';
 
-      const resp = await fetch(url, {
+      const resp = await fetchApi(url, {
         method,
         body: formData // Multer handles multipart upload
       });
@@ -290,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('delete-confirm')?.addEventListener('click', async () => {
     if (!editingProgramId) return;
     try {
-      const resp = await fetch(`/api/admin/programs/${editingProgramId}`, { method: 'DELETE' });
+      const resp = await fetchApi(`/api/admin/programs/${editingProgramId}`, { method: 'DELETE' });
       const data = await resp.json();
       if (data.success) {
         showToast('Program deleted successfully.', 'success');
@@ -313,7 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
     openModal('completions-modal');
 
     try {
-      const resp = await fetch(`/api/admin/programs/${programId}/completions`);
+      const resp = await fetchApi(`/api/admin/programs/${programId}/completions`);
       const data = await resp.json();
       if (!data.success) throw new Error(data.message || 'Failed to load');
 
@@ -438,6 +482,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.getElementById('completions-modal-close')?.addEventListener('click', () => closeModal('completions-modal'));
+
+  // Lifecycle listeners for auto-refreshing data on navigation/focus
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+      fetchPrograms();
+    }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      fetchPrograms();
+    }
+  });
 
   // Init
   fetchPrograms();

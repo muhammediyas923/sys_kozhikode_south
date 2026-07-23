@@ -9,8 +9,10 @@ function registerServiceWorker() {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then(registration => {
       console.log('SYS PWA Service Worker registered.', registration);
+      registration.update();
       if (registration.waiting) {
-        console.log('A new service worker is waiting to activate. Refresh page to update.');
+        console.log('A new service worker is waiting to activate.');
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
       }
     }).catch(error => {
       console.warn('SYS PWA Service Worker registration failed:', error);

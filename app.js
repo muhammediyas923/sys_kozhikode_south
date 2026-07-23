@@ -25,7 +25,13 @@ app.use(session({
   saveUninitialized: false,
   cookie: { maxAge: 60 * 60 * 1000 }
 }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
+  }
+}));
 
 app.use(function (req, res, next) {
   res.locals.currentUser = req.session.user || null;

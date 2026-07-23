@@ -12,6 +12,15 @@ const notifHelper = require('../helpers/notification-helper');
 const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
 
+/* Disable HTTP Caching for all API Endpoints */
+router.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
+
 /* ─── PUBLIC: For login dropdowns ─────────────────────────────────────────── */
 
 router.get('/zones', async (req, res, next) => {

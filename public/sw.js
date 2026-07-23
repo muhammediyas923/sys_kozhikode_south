@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sys-pwa-v2';
+const CACHE_NAME = 'sys-pwa-v5';
 const PRECACHE_URLS = [
   '/',
   '/offline.html',
@@ -38,16 +38,33 @@ self.addEventListener('fetch', event => {
 
   if (request.method !== 'GET') return;
 
-  // Avoid caching API requests; always try network first for API endpoints
+  // 1. Avoid caching API requests; always try network first with no-store
   if (url.pathname.startsWith('/api/') || (request.headers.get('accept') || '').includes('application/json')) {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: 'no-store' })
         .then(response => response)
         .catch(() => caches.match('/offline.html'))
     );
     return;
   }
 
+  // 2. Network-First strategy for JS and CSS files to guarantee fresh code execution
+  if (url.pathname.startsWith('/javascripts/') || url.pathname.startsWith('/stylesheets/')) {
+    event.respondWith(
+      fetch(request)
+        .then(networkResponse => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, responseClone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // 3. Network-First strategy for HTML navigation requests
   if (request.mode === 'navigate' || (request.headers.get('accept') || '').includes('text/html')) {
     event.respondWith(
       fetch(request)
@@ -61,6 +78,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // 4. Cache-First fallback for static media/assets
   event.respondWith(
     caches.match(request).then(cachedResponse => {
       if (cachedResponse) return cachedResponse;
