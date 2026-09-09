@@ -1378,6 +1378,9 @@ body.dashboard-body {
     width: 42px;
     height: 42px;
     flex-shrink: 0;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
   }
 
   .ds-sidebar-overlay {

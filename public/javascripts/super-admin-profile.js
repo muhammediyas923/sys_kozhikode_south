@@ -124,8 +124,5 @@ document.addEventListener('DOMContentLoaded', () => {
       passwordFeedback.classList.remove('d-none');
     }
   });
-
-  document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
-    window.toggleSidebar?.();
-  });
 });
+

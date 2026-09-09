@@ -5,10 +5,18 @@ const sidebar = document.getElementById('sidebar');
 const overlay = document.getElementById('sidebar-overlay');
 const toggleBtn = document.getElementById('sidebar-toggle');
 
-window.toggleSidebar = () => {
-  if (!sidebar || !overlay) return;
-  sidebar.classList.toggle('open');
-  overlay.classList.toggle('open');
+let _sbToggleBusy = false;
+window.toggleSidebar = (e) => {
+  if (e && e.preventDefault) e.preventDefault();
+  if (_sbToggleBusy) return;
+  _sbToggleBusy = true;
+  setTimeout(() => { _sbToggleBusy = false; }, 150);
+
+  const sb = sidebar || document.getElementById('sidebar');
+  const ov = overlay || document.getElementById('sidebar-overlay');
+  if (!sb || !ov) return;
+  sb.classList.toggle('open');
+  ov.classList.toggle('open');
 };
 
 if (toggleBtn) {

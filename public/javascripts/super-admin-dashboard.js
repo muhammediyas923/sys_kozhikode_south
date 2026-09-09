@@ -2,17 +2,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const { showToast, openModal, closeModal, formatDateTime, loadNotifications, timeAgo } = window.dsUtils;
 
-  // Sidebar toggle
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebar-overlay');
-  document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
-    sidebar.classList.toggle('open');
-    overlay.classList.toggle('open');
-  });
-  overlay?.addEventListener('click', () => {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('open');
-  });
 
   let doughnutChart = null;
   let barChart = null;

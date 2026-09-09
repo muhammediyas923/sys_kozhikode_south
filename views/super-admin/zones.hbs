@@ -146,22 +146,6 @@
   <script src="/javascripts/notifications.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const toggle = document.getElementById('sidebar-toggle');
-      const sidebar = document.getElementById('sidebar');
-      const overlay = document.getElementById('sidebar-overlay');
-      if (toggle) {
-        toggle.addEventListener('click', () => {
-          sidebar.classList.toggle('active');
-          overlay.classList.toggle('active');
-        });
-      }
-      if (overlay) {
-        overlay.addEventListener('click', () => {
-          sidebar.classList.remove('active');
-          overlay.classList.remove('active');
-        });
-      }
-
       loadZones();
       
       const modal = document.getElementById('zone-modal');

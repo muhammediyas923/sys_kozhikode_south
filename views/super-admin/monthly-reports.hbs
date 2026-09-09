@@ -511,8 +511,7 @@
   <div class="ds-main">
     <!-- TOP BAR -->
     <header class="ds-topbar">
-      <button type="button" class="ds-topbar-menu-btn" id="sidebar-toggle" aria-label="Toggle sidebar"
-        onclick="window.toggleSidebar?.()">
+      <button type="button" class="ds-topbar-menu-btn" id="sidebar-toggle" aria-label="Toggle sidebar">
         <i class="ph ph-list"></i>
       </button>
       <div class="ds-topbar-title">Program Progress Tables <span>/ User Type Isolation</span></div>
@@ -1722,7 +1721,12 @@
       const sb = document.getElementById('sidebar');
       const ov = document.getElementById('sidebar-overlay');
       const tb = document.getElementById('sidebar-toggle');
-      window.toggleSidebar = function () {
+      let _toggleBusy = false;
+      window.toggleSidebar = function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        if (_toggleBusy) return;
+        _toggleBusy = true;
+        setTimeout(() => { _toggleBusy = false; }, 150);
         if (!sb || !ov) return;
         sb.classList.toggle('open');
         ov.classList.toggle('open');
@@ -1732,6 +1736,17 @@
         sb?.classList.remove('open');
         ov?.classList.remove('open');
       });
+      // Auto-close sidebar when clicking links on mobile
+      if (sb) {
+        sb.querySelectorAll('.ds-nav-link').forEach(link => {
+          link.addEventListener('click', () => {
+            if (window.innerWidth <= 991) {
+              sb.classList.remove('open');
+              ov?.classList.remove('open');
+            }
+          });
+        });
+      }
     })();
   </script>
 </body>
