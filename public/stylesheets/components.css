@@ -1461,3 +1461,26 @@
 .ds-checkbox-card:hover .ds-checkbox-card-content { border-color: var(--color-primary-light); background-color: #f8fafc; }
 .ds-checkbox-card input[type="checkbox"]:checked + .ds-checkbox-card-content { border-color: var(--color-primary); background-color: rgba(var(--color-primary-rgb), 0.05); color: var(--color-primary-dark); box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.1); }
 .ds-checkbox-card input[type="checkbox"]:checked + .ds-checkbox-card-content i { color: var(--color-primary); }
+
+@media (max-width: 360px) {
+  .hero-content h1 {
+    font-size: 1.65rem;
+  }
+  .hero-buttons .btn {
+    font-size: 0.88rem;
+    padding: 0.75rem 1rem;
+    min-height: 42px;
+  }
+  .stats-bar .row {
+    gap: 0.4rem;
+  }
+  .stat-item {
+    gap: 0.35rem;
+  }
+  .stat-text h4 {
+    font-size: 0.85rem;
+  }
+  .stat-text p {
+    font-size: 0.65rem;
+  }
+}

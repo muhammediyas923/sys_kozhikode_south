@@ -17,8 +17,20 @@ if (toggleBtn) {
 
 if (overlay) {
   overlay.addEventListener('click', () => {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('open');
+    sidebar?.classList.remove('open');
+    overlay?.classList.remove('open');
+  });
+}
+
+// Auto-close sidebar when clicking links on mobile
+if (sidebar) {
+  sidebar.querySelectorAll('.ds-nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 991) {
+        sidebar.classList.remove('open');
+        overlay?.classList.remove('open');
+      }
+    });
   });
 }
 

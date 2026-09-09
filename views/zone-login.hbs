@@ -17,6 +17,7 @@
       align-items: center;
       justify-content: center;
       padding: 1rem;
+      overflow-x: hidden;
     }
     .login-wrapper {
       width: 100%;
@@ -63,6 +64,20 @@
       padding: 0.75rem;
       border-radius: 10px;
       margin-bottom: 1rem;
+    }
+    @media (max-width: 480px) {
+      body { padding: 0.5rem; align-items: flex-start; padding-top: 1.5rem; padding-bottom: 1rem; }
+      .login-card { border-radius: 16px; }
+      .login-header { padding: 1.5rem 1.25rem; }
+      .login-header h1 { font-size: 1.2rem !important; }
+      .login-logo { width: 48px; height: 48px; margin-bottom: 0.5rem; }
+      .login-body { padding: 1.25rem 1rem; }
+      .form-control { font-size: 1rem; padding: 0.65rem 0.85rem; }
+      .btn-login { padding: 0.75rem 1rem; font-size: 0.95rem; min-height: 44px; }
+    }
+    @media (max-width: 360px) {
+      body { padding: 0.25rem; padding-top: 1rem; }
+      .login-body { padding: 1rem 0.75rem; }
     }
   </style>
 </head>

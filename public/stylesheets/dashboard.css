@@ -256,6 +256,8 @@ body.dashboard-body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-width: 0;
+  max-width: 100%;
   transition: margin-left var(--ds-transition);
 }
 
@@ -710,6 +712,66 @@ body.dashboard-body {
   padding-right: 36px;
 }
 
+/* ── CHECKBOX / RADIO CARDS ──────────────────────────────────── */
+.ds-checkbox-group {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.ds-checkbox-card {
+  cursor: pointer;
+  user-select: none;
+  flex: 1;
+  min-width: 0;
+}
+
+.ds-checkbox-card input[type="checkbox"],
+.ds-checkbox-card input[type="radio"] {
+  display: none;
+}
+
+.ds-checkbox-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border: 1.5px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  transition: all var(--ds-transition);
+  background-color: white;
+  color: var(--ds-text-muted);
+}
+
+.ds-checkbox-card-content i {
+  font-size: 1.5rem;
+  color: var(--ds-text-muted);
+}
+
+.ds-checkbox-card-content span {
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.ds-checkbox-card:hover .ds-checkbox-card-content {
+  border-color: var(--ds-primary-light);
+  background-color: var(--ds-bg);
+}
+
+.ds-checkbox-card input:checked + .ds-checkbox-card-content {
+  border-color: var(--ds-primary);
+  background-color: var(--ds-primary-pale);
+  color: var(--ds-primary);
+  box-shadow: 0 4px 12px rgba(20, 83, 62, 0.12);
+}
+
+.ds-checkbox-card input:checked + .ds-checkbox-card-content i {
+  color: var(--ds-primary);
+}
+
 /* ── MODAL ────────────────────────────────────────────────────── */
 .ds-modal-backdrop {
   position: fixed;
@@ -739,8 +801,10 @@ body.dashboard-body {
   transform: translateY(20px) scale(0.97);
   transition: transform 0.25s ease, opacity 0.25s ease;
   opacity: 0;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .ds-modal-backdrop.open .ds-modal {
@@ -754,6 +818,7 @@ body.dashboard-body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .ds-modal-title {
@@ -781,6 +846,9 @@ body.dashboard-body {
 
 .ds-modal-body {
   padding: 24px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .ds-modal-footer {
@@ -789,6 +857,8 @@ body.dashboard-body {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 /* ── NOTIFICATION PANEL ───────────────────────────────────────── */
@@ -1089,7 +1159,7 @@ body.dashboard-body {
 
 .ds-modal-progress-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 12px;
   margin-bottom: 14px;
 }
@@ -1281,48 +1351,71 @@ body.dashboard-body {
 @media (max-width: 991px) {
   .ds-sidebar {
     transform: translateX(-100%);
+    height: 100dvh;
+    max-width: 85vw;
+    z-index: 1050;
     box-shadow: none;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .ds-sidebar.open {
     transform: translateX(0);
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.35);
   }
 
   .ds-main {
     margin-left: 0;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   .ds-topbar-menu-btn {
     display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
   }
 
   .ds-sidebar-overlay {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
+    backdrop-filter: blur(2px);
+    z-index: 1040;
     display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
 
   .ds-sidebar-overlay.open {
     display: block;
+    opacity: 1;
   }
 }
 
 @media (max-width: 768px) {
-
   /* Topbar */
   .ds-topbar {
     padding: 0 12px;
-    gap: 10px;
+    gap: 8px;
+    height: 56px;
   }
 
   .ds-topbar-title {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .ds-topbar-title span {
+    display: none;
   }
 
   .ds-search-box {
@@ -1332,31 +1425,53 @@ body.dashboard-body {
   /* Content */
   .ds-content {
     padding: 16px 12px;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .ds-page-header {
+    margin-bottom: 16px;
   }
 
   .ds-page-header h1 {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
+    word-break: break-word;
   }
 
   .ds-page-header p {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
+    word-break: break-word;
   }
 
   /* Stat grid — 2 columns on tablet */
   .ds-stat-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .ds-stat-card {
+    padding: 14px 12px;
   }
 
   .ds-stat-value {
     font-size: 1.5rem;
+    word-break: break-word;
   }
 
   .ds-stat-label {
     font-size: 0.72rem;
+    word-break: break-word;
   }
 
   /* Cards */
+  .ds-card {
+    margin-bottom: 16px;
+    border-radius: var(--ds-radius);
+    max-width: 100%;
+    overflow: hidden;
+  }
+
   .ds-card-header {
     flex-wrap: wrap;
     gap: 8px;
@@ -1368,9 +1483,17 @@ body.dashboard-body {
   }
 
   /* Tables: horizontal scroll */
-  .ds-table-wrapper {
+  .ds-table-wrapper,
+  .table-responsive {
+    width: 100%;
+    max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    border-radius: 0;
+  }
+
+  .ds-table {
+    min-width: 580px;
   }
 
   .ds-table th,
@@ -1389,6 +1512,7 @@ body.dashboard-body {
   }
 
   .ds-filter-bar .ds-form-control,
+  .ds-filter-bar .ds-form-select,
   .ds-filter-bar .ds-search-box {
     max-width: 100% !important;
     width: 100% !important;
@@ -1401,9 +1525,19 @@ body.dashboard-body {
   }
 
   /* Modal */
+  .ds-modal-backdrop {
+    padding: 10px;
+  }
+
   .ds-modal {
-    max-width: calc(100vw - 24px) !important;
-    margin: 0;
+    max-width: calc(100vw - 20px) !important;
+    max-height: calc(100dvh - 20px);
+    margin: 0 auto;
+    border-radius: 14px;
+  }
+
+  .ds-modal-header {
+    padding: 14px 16px;
   }
 
   .ds-modal-body {
@@ -1413,19 +1547,23 @@ body.dashboard-body {
   .ds-modal-footer {
     padding: 12px 16px;
     flex-wrap: wrap;
+    gap: 8px;
   }
 
   .ds-modal-footer .ds-btn {
-    flex: 1;
+    flex: 1 1 auto;
     justify-content: center;
     min-width: 100px;
   }
 
   /* Notification panel */
   .ds-notif-panel {
+    position: fixed;
     width: calc(100vw - 24px);
-    right: 0;
+    right: 12px;
     left: 12px;
+    top: 60px;
+    max-height: calc(100dvh - 80px);
   }
 
   /* Toast container */
@@ -1442,47 +1580,131 @@ body.dashboard-body {
 
   /* Charts */
   .ds-chart-container {
-    height: 220px !important;
+    height: 230px !important;
   }
 
-  /* Program cards: single column */
+  /* Program cards */
   .ds-program-card {
     padding: 14px;
+    border-radius: var(--ds-radius);
+    width: 100%;
   }
 
   .ds-program-title {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    word-break: break-word;
   }
 
   .ds-program-desc {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
+    word-break: break-word;
   }
 }
 
 @media (max-width: 576px) {
+  /* Content padding for small phones */
+  .ds-content {
+    padding: 14px 10px;
+  }
 
   /* Stat grid — 2 columns on phone */
   .ds-stat-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
+    margin-bottom: 14px;
   }
 
   .ds-stat-card {
-    padding: 14px 12px;
+    padding: 12px 10px;
   }
 
   .ds-stat-value {
     font-size: 1.3rem;
   }
 
+  .ds-stat-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+  }
+
+  .ds-stat-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    border-radius: 8px;
+  }
+
   /* Buttons: ensure touch-friendly size */
   .ds-btn {
-    min-height: 40px;
+    min-height: 42px;
+    font-size: 0.85rem;
   }
 
   .ds-btn-sm {
-    padding: 5px 10px;
-    font-size: 0.75rem;
+    min-height: 36px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+  }
+
+  /* Header card buttons stack */
+  .ds-card-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 10px;
+  }
+
+  .ds-card-header .ds-card-title {
+    width: 100%;
+  }
+
+  .ds-card-header .ds-btn,
+  .ds-card-header .d-flex {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .ds-card-header .d-flex .ds-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  /* Modal footer buttons full width */
+  .ds-modal-footer .ds-btn {
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Checkbox cards (Program Creation modal) */
+  .ds-checkbox-group {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .ds-checkbox-card {
+    width: 100% !important;
+  }
+
+  .ds-checkbox-card-content {
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    padding: 10px 14px !important;
+    gap: 12px !important;
+  }
+
+  /* Modal progress stats (Completion modal) */
+  .ds-modal-progress-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .ds-modal-stat {
+    padding: 6px 4px;
+  }
+
+  .ds-modal-stat-value {
+    font-size: 1.2rem;
   }
 
   /* Sidebar branding compact */
@@ -1499,11 +1721,6 @@ body.dashboard-body {
     font-size: 0.75rem;
   }
 
-  /* Action buttons in table: stack if too many */
-  .ds-table td>.ds-btn+.ds-btn {
-    margin-top: 4px;
-  }
-
   /* Upload zone */
   .ds-upload-zone {
     padding: 20px 12px;
@@ -1511,6 +1728,53 @@ body.dashboard-body {
 
   .ds-upload-zone i {
     font-size: 1.5rem;
+  }
+
+  /* Ribbon */
+  .ds-completion-ribbon {
+    font-size: 0.55rem;
+    padding: 3px 26px;
+    right: -28px;
+    top: 8px;
+  }
+}
+
+@media (max-width: 360px) {
+  /* Extra compact for 320px screens */
+  .ds-content {
+    padding: 10px 6px;
+  }
+
+  .ds-stat-grid {
+    gap: 6px;
+  }
+
+  .ds-stat-card {
+    padding: 10px 8px;
+  }
+
+  .ds-stat-value {
+    font-size: 1.15rem;
+  }
+
+  .ds-stat-label {
+    font-size: 0.62rem;
+  }
+
+  .ds-stat-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+  }
+
+  .ds-topbar {
+    padding: 0 8px;
+  }
+
+  .ds-btn {
+    font-size: 0.8rem;
+    padding: 6px 10px;
   }
 }
 
@@ -1573,60 +1837,6 @@ body.dashboard-body {
   position: relative;
   height: 300px;
   width: 100%;
-}
-
-/* ── RESPONSIVE ───────────────────────────────────────────────── */
-@media (max-width: 991px) {
-  .ds-sidebar {
-    transform: translateX(-100%);
-  }
-
-  .ds-sidebar.open {
-    transform: translateX(0);
-  }
-
-  .ds-main {
-    margin-left: 0;
-  }
-
-  .ds-topbar-menu-btn {
-    display: flex;
-  }
-
-  .ds-sidebar-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
-    display: none;
-  }
-
-  .ds-sidebar-overlay.open {
-    display: block;
-  }
-}
-
-@media (max-width: 576px) {
-  .ds-content {
-    padding: 16px;
-  }
-
-  .ds-stat-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .ds-notif-panel {
-    width: calc(100vw - 32px);
-    right: 0;
-  }
-
-  .ds-topbar {
-    padding: 0 16px;
-  }
-
-  .ds-search-box {
-    display: none;
-  }
 }
 
 /* ── UPLOAD ZONE ──────────────────────────────────────────────── */

@@ -11,13 +11,23 @@ document.addEventListener('DOMContentLoaded', () => {
   // Sidebar toggle
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
-  document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
-    sidebar.classList.toggle('open');
-    overlay.classList.toggle('open');
-  });
+  window.toggleSidebar = () => {
+    sidebar?.classList.toggle('open');
+    overlay?.classList.toggle('open');
+  };
+  document.getElementById('sidebar-toggle')?.addEventListener('click', window.toggleSidebar);
   overlay?.addEventListener('click', () => {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('open');
+    sidebar?.classList.remove('open');
+    overlay?.classList.remove('open');
+  });
+  // Auto-close sidebar when clicking links on mobile
+  sidebar?.querySelectorAll('.ds-nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 991) {
+        sidebar?.classList.remove('open');
+        overlay?.classList.remove('open');
+      }
+    });
   });
 
   let programs = window.__INITIAL_PROGRAMS__ || [];
