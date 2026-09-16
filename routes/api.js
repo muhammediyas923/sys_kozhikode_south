@@ -8,7 +8,6 @@ const zoneHelper = require('../helpers/zone-helper');
 const circleHelper = require('../helpers/circle-helper');
 const userHelper = require('../helpers/user-helper');
 const programHelper = require('../helpers/program-helper');
-const notifHelper = require('../helpers/notification-helper');
 const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
 
@@ -59,8 +58,6 @@ router.get('/units', async (req, res, next) => {
     return res.json({ success: true, units });
   } catch (error) { return next(error); }
 });
-
-/* Notifications API removed for user dashboard (endpoints disabled). */
 
 /* ─── SUPER ADMIN: ANALYTICS ─────────────────────────────────────────────── */
 
@@ -307,8 +304,6 @@ router.put('/admin/programs/:id', auth.requireApiLogin, auth.requireApiRole('Sup
 router.post('/admin/programs/:id/publish', auth.requireApiLogin, auth.requireApiRole('SuperAdmin'), async (req, res, next) => {
   try {
     await programHelper.publishProgram(req.params.id);
-    const program = await programHelper.getProgramById(req.params.id);
-    // Notification broadcast disabled for unit dashboard
     return res.json({ success: true });
   } catch (error) { return next(error); }
 });
@@ -716,22 +711,7 @@ router.post('/unit/programs/:id/submit-completion',
         { completionCount, participantsCount, completionDate, notes, images }
       );
 
-      // Fetch program title for notification
-      const progTitle = program ? program.title : 'Unknown Program';
       const requiredCount = program ? (program.requiredCount || 1) : 1;
-      const count = parseInt(completionCount, 10) || 1;
-
-      // Notify admin
-      try {
-        await notifHelper.createNotification(
-          'admin',
-          'unit_completed',
-          `${user.unitName} completed "${progTitle}" (${count}/${requiredCount} times).`,
-          { programId: req.params.id, userId: user._id, unitName: user.unitName }
-        );
-      } catch (notifErr) {
-        console.warn('Notification creation failed:', notifErr.message);
-      }
 
       return res.json({
         success: true,

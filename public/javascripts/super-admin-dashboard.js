@@ -1,6 +1,6 @@
 /* Super Admin Dashboard JS */
 document.addEventListener('DOMContentLoaded', () => {
-  const { showToast, openModal, closeModal, formatDateTime, loadNotifications, timeAgo } = window.dsUtils;
+  const { showToast, openModal, closeModal, formatDateTime, timeAgo } = window.dsUtils;
 
 
   let doughnutChart = null;
@@ -161,9 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
       </tr>
     `).join('');
   }
-
-  // Notification panel
-  loadNotifications();
 
   // Refresh button
   document.getElementById('refresh-btn')?.addEventListener('click', () => {
