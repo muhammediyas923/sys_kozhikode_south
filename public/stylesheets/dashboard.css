@@ -286,6 +286,12 @@ body.dashboard-body {
   border-radius: 8px;
   transition: all var(--ds-transition);
   display: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ds-topbar-menu-btn i {
+  pointer-events: none;
 }
 
 .ds-topbar-menu-btn:hover {

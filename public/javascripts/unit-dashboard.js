@@ -8,24 +8,52 @@ document.addEventListener('DOMContentLoaded', () => {
     return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   });
 
-  // Sidebar toggle
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebar-overlay');
-  window.toggleSidebar = () => {
-    sidebar?.classList.toggle('open');
-    overlay?.classList.toggle('open');
+  // Sidebar toggle with debounce & touch handling
+  let _sbToggleBusy = false;
+  window.toggleSidebar = (e) => {
+    if (e) {
+      if (e.preventDefault) e.preventDefault();
+      if (e.stopPropagation) e.stopPropagation();
+    }
+    if (_sbToggleBusy) return;
+    _sbToggleBusy = true;
+    setTimeout(() => { _sbToggleBusy = false; }, 300);
+
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('sidebar-overlay');
+    if (!sb || !ov) return;
+    sb.classList.toggle('open');
+    ov.classList.toggle('open');
   };
-  document.getElementById('sidebar-toggle')?.addEventListener('click', window.toggleSidebar);
-  overlay?.addEventListener('click', () => {
-    sidebar?.classList.remove('open');
-    overlay?.classList.remove('open');
-  });
+
+  const toggleBtn = document.getElementById('sidebar-toggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', window.toggleSidebar);
+    toggleBtn.addEventListener('touchend', (e) => {
+      window.toggleSidebar(e);
+    }, { passive: false });
+  }
+
+  const overlayEl = document.getElementById('sidebar-overlay');
+  if (overlayEl) {
+    const closeSidebar = (e) => {
+      if (e) {
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
+      }
+      document.getElementById('sidebar')?.classList.remove('open');
+      document.getElementById('sidebar-overlay')?.classList.remove('open');
+    };
+    overlayEl.addEventListener('click', closeSidebar);
+    overlayEl.addEventListener('touchend', closeSidebar, { passive: false });
+  }
+
   // Auto-close sidebar when clicking links on mobile
-  sidebar?.querySelectorAll('.ds-nav-link').forEach(link => {
+  document.getElementById('sidebar')?.querySelectorAll('.ds-nav-link').forEach(link => {
     link.addEventListener('click', () => {
       if (window.innerWidth <= 991) {
-        sidebar?.classList.remove('open');
-        overlay?.classList.remove('open');
+        document.getElementById('sidebar')?.classList.remove('open');
+        document.getElementById('sidebar-overlay')?.classList.remove('open');
       }
     });
   });
