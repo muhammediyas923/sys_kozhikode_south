@@ -729,14 +729,14 @@ body.dashboard-body {
   background-color: var(--ds-bg);
 }
 
-.ds-checkbox-card input:checked + .ds-checkbox-card-content {
+.ds-checkbox-card input:checked+.ds-checkbox-card-content {
   border-color: var(--ds-primary);
   background-color: var(--ds-primary-pale);
   color: var(--ds-primary);
   box-shadow: 0 4px 12px rgba(20, 83, 62, 0.12);
 }
 
-.ds-checkbox-card input:checked + .ds-checkbox-card-content i {
+.ds-checkbox-card input:checked+.ds-checkbox-card-content i {
   color: var(--ds-primary);
 }
 
@@ -951,7 +951,7 @@ body.dashboard-body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
   animation: shimmer 2s infinite;
 }
 
@@ -1018,19 +1018,40 @@ body.dashboard-body {
 
 /* ── COMPLETION ANIMATIONS ────────────────────────────────────── */
 @keyframes shimmer {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes completedGlow {
-  0%   { box-shadow: 0 0 16px rgba(22, 163, 74, 0.10), 0 4px 12px rgba(0,0,0,0.06); }
-  100% { box-shadow: 0 0 24px rgba(22, 163, 74, 0.18), 0 4px 12px rgba(0,0,0,0.06); }
+  0% {
+    box-shadow: 0 0 16px rgba(22, 163, 74, 0.10), 0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  100% {
+    box-shadow: 0 0 24px rgba(22, 163, 74, 0.18), 0 4px 12px rgba(0, 0, 0, 0.06);
+  }
 }
 
 @keyframes checkBounce {
-  0%   { transform: scale(0); opacity: 0; }
-  60%  { transform: scale(1.2); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .ds-check-animated {
@@ -1094,8 +1115,11 @@ body.dashboard-body {
 .ds-modal-progress-fill::after {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
   animation: shimmer 2s infinite;
 }
 
@@ -1291,6 +1315,7 @@ body.dashboard-body {
 }
 
 @media (max-width: 768px) {
+
   /* Topbar */
   .ds-topbar {
     padding: 0 12px;
@@ -1485,6 +1510,7 @@ body.dashboard-body {
 }
 
 @media (max-width: 576px) {
+
   /* Content padding for small phones */
   .ds-content {
     padding: 14px 10px;
@@ -1623,6 +1649,7 @@ body.dashboard-body {
 }
 
 @media (max-width: 360px) {
+
   /* Extra compact for 320px screens */
   .ds-content {
     padding: 10px 6px;

@@ -16,7 +16,7 @@ var circleHelper = require('../helpers/circle-helper');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || '4000');
 app.set('port', port);
 
 /**
@@ -33,7 +33,7 @@ db.connect()
   .then(() => zoneHelper.seedDefaultZones())
   .then(() => circleHelper.seedDefaultCircles())
   .then(() => {
-    server.listen(port);
+    server.listen(port, '0.0.0.0');
   })
   .catch((err) => {
     console.error('Failed to connect to database:', err);

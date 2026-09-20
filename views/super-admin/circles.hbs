@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +12,7 @@
   <meta name="theme-color" content="#14533e">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
+
 <body class="dashboard-body">
   <div class="ds-sidebar-overlay" id="sidebar-overlay"></div>
   <aside class="ds-sidebar" id="sidebar">
@@ -63,7 +65,8 @@
 
       <div class="ds-card">
         <div class="ds-card-header">
-          <h3 class="ds-card-title"><i class="ph ph-circles-three"></i> Circles <span class="ds-badge ds-badge-primary ms-2" id="circle-count-badge">0</span></h3>
+          <h3 class="ds-card-title"><i class="ph ph-circles-three"></i> Circles <span
+              class="ds-badge ds-badge-primary ms-2" id="circle-count-badge">0</span></h3>
         </div>
         <div class="ds-card-body p-0">
           <div class="ds-table-wrapper">
@@ -80,7 +83,13 @@
                 </tr>
               </thead>
               <tbody id="circles-table-body">
-                <tr><td colspan="7"><div class="ds-loading-overlay"><div class="ds-spinner"></div></div></td></tr>
+                <tr>
+                  <td colspan="7">
+                    <div class="ds-loading-overlay">
+                      <div class="ds-spinner"></div>
+                    </div>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -126,7 +135,8 @@
           </div>
           <div class="col-12" id="circle-password-group">
             <div class="ds-form-group">
-              <label class="ds-form-label" for="circle-password">Password <span class="text-danger" id="circle-pw-req">*</span></label>
+              <label class="ds-form-label" for="circle-password">Password <span class="text-danger"
+                  id="circle-pw-req">*</span></label>
               <input type="text" class="ds-form-control" id="circle-password" placeholder="Set password">
               <small class="text-muted" id="circle-pw-hint"></small>
             </div>
@@ -145,7 +155,8 @@
       </div>
       <div class="ds-modal-footer">
         <button class="ds-btn ds-btn-outline" id="circle-modal-cancel">Cancel</button>
-        <button class="ds-btn ds-btn-primary" id="circle-modal-save"><i class="ph ph-floppy-disk"></i> Save Circle</button>
+        <button class="ds-btn ds-btn-primary" id="circle-modal-save"><i class="ph ph-floppy-disk"></i> Save
+          Circle</button>
       </div>
     </div>
   </div>
@@ -157,7 +168,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       loadZonesForSelect();
       loadCircles();
-      
+
       const modal = document.getElementById('circle-modal');
       let editingId = null;
 
@@ -167,10 +178,10 @@
           const data = await res.json();
           if (data.success) {
             const select = document.getElementById('circle-zone');
-            select.innerHTML = '<option value="">Select zone...</option>' + 
+            select.innerHTML = '<option value="">Select zone...</option>' +
               data.zones.map(z => `<option value="${z._id}" data-name="${z.name}">${z.name}</option>`).join('');
           }
-        } catch(e) {}
+        } catch (e) { }
       }
 
       document.getElementById('add-circle-btn').addEventListener('click', () => {
@@ -202,7 +213,7 @@
         const password = document.getElementById('circle-password').value.trim();
         const status = document.getElementById('circle-status').value;
         const errEl = document.getElementById('circle-modal-error');
-        
+
         if (!zoneId || !name || !username || (!editingId && !password)) {
           errEl.textContent = 'Zone, name, username, and password are required.';
           errEl.classList.remove('d-none');
@@ -259,7 +270,7 @@
                 <td><span class="ds-badge ${c.status === 'Active' ? 'ds-badge-success' : 'ds-badge-secondary'}">${c.status || 'Active'}</span></td>
                 <td>
                   <div class="d-flex gap-2">
-                    <button class="ds-btn ds-btn-outline ds-btn-sm edit-btn" data-id="${c._id}" data-zone="${c.zoneId}" data-name="${c.name}" data-code="${c.code||''}" data-username="${c.username||''}" data-status="${c.status||'Active'}">
+                    <button class="ds-btn ds-btn-outline ds-btn-sm edit-btn" data-id="${c._id}" data-zone="${c.zoneId}" data-name="${c.name}" data-code="${c.code || ''}" data-username="${c.username || ''}" data-status="${c.status || 'Active'}">
                       <i class="ph ph-pencil-simple"></i> Edit
                     </button>
                     <button class="ds-btn ds-btn-outline ds-btn-sm text-danger delete-btn" data-id="${c._id}" data-name="${c.name}">
@@ -307,4 +318,5 @@
     });
   </script>
 </body>
+
 </html>

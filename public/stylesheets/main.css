@@ -21,7 +21,12 @@ body {
 }
 
 /* Typography */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 700;
   line-height: 1.2;
   margin-bottom: var(--spacing-md);
@@ -61,7 +66,8 @@ img {
   display: block;
 }
 
-ul, ol {
+ul,
+ol {
   list-style: none;
 }
 
@@ -73,18 +79,35 @@ ul, ol {
   padding: 0 var(--spacing-xl);
 }
 
-.text-center { text-align: center; }
-.text-gold { color: var(--color-accent); }
-.text-white { color: var(--color-white); }
+.text-center {
+  text-align: center;
+}
+
+.text-gold {
+  color: var(--color-accent);
+}
+
+.text-white {
+  color: var(--color-white);
+}
 
 /* Prefer brand primary over Bootstrap’s default blue for .text-primary */
 .text-primary {
   color: var(--color-primary) !important;
 }
 
-.bg-light { background-color: var(--color-off-white); }
-.bg-primary { background-color: var(--color-primary-dark); color: var(--color-white); }
-.bg-white { background-color: var(--color-white); }
+.bg-light {
+  background-color: var(--color-off-white);
+}
+
+.bg-primary {
+  background-color: var(--color-primary-dark);
+  color: var(--color-white);
+}
+
+.bg-white {
+  background-color: var(--color-white);
+}
 
 .section-padding {
   padding: var(--spacing-4xl) 0;

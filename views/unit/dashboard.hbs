@@ -259,7 +259,8 @@
                 <label class="ds-form-label" for="completion-participants">
                   Participants <span class="text-danger">*</span>
                 </label>
-                <input type="number" class="ds-form-control" id="completion-participants" name="participantsCount" min="1" max="99999" style="font-size:1.1rem; font-weight:700;" placeholder="e.g. 20">
+                <input type="number" class="ds-form-control" id="completion-participants" name="participantsCount"
+                  min="1" max="99999" style="font-size:1.1rem; font-weight:700;" placeholder="e.g. 20">
               </div>
             </div>
             <div class="col-sm-4">
@@ -319,7 +320,7 @@
 
   <script>
     window.__USER_ROLE__ = '{{user.role}}';
-    window.__INITIAL_PROGRAMS__ = {{{programsJson}}};
+    window.__INITIAL_PROGRAMS__ = {{ { programsJson } }};
     console.debug('unit dashboard initial programs', window.__INITIAL_PROGRAMS__);
   </script>
   <script src="/javascripts/pwa.js"></script>

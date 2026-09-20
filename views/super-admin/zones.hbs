@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +12,7 @@
   <meta name="theme-color" content="#14533e">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
+
 <body class="dashboard-body">
   <div class="ds-sidebar-overlay" id="sidebar-overlay"></div>
   <aside class="ds-sidebar" id="sidebar">
@@ -63,7 +65,8 @@
 
       <div class="ds-card">
         <div class="ds-card-header">
-          <h3 class="ds-card-title"><i class="ph ph-map-pin"></i> Zones <span class="ds-badge ds-badge-primary ms-2" id="zone-count-badge">0</span></h3>
+          <h3 class="ds-card-title"><i class="ph ph-map-pin"></i> Zones <span class="ds-badge ds-badge-primary ms-2"
+              id="zone-count-badge">0</span></h3>
         </div>
         <div class="ds-card-body p-0">
           <div class="ds-table-wrapper">
@@ -79,7 +82,13 @@
                 </tr>
               </thead>
               <tbody id="zones-table-body">
-                <tr><td colspan="6"><div class="ds-loading-overlay"><div class="ds-spinner"></div></div></td></tr>
+                <tr>
+                  <td colspan="6">
+                    <div class="ds-loading-overlay">
+                      <div class="ds-spinner"></div>
+                    </div>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -117,7 +126,8 @@
           </div>
           <div class="col-12" id="zone-password-group">
             <div class="ds-form-group">
-              <label class="ds-form-label" for="zone-password">Password <span class="text-danger" id="zone-pw-req">*</span></label>
+              <label class="ds-form-label" for="zone-password">Password <span class="text-danger"
+                  id="zone-pw-req">*</span></label>
               <input type="text" class="ds-form-control" id="zone-password" placeholder="Set password">
               <small class="text-muted" id="zone-pw-hint"></small>
             </div>
@@ -147,7 +157,7 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       loadZones();
-      
+
       const modal = document.getElementById('zone-modal');
       let editingId = null;
 
@@ -176,7 +186,7 @@
         const password = document.getElementById('zone-password').value.trim();
         const status = document.getElementById('zone-status').value;
         const errEl = document.getElementById('zone-modal-error');
-        
+
         if (!name || !username || (!editingId && !password)) {
           errEl.textContent = 'Name, username, and password are required.';
           errEl.classList.remove('d-none');
@@ -232,7 +242,7 @@
                 <td><span class="ds-badge ${z.status === 'Active' ? 'ds-badge-success' : 'ds-badge-secondary'}">${z.status || 'Active'}</span></td>
                 <td>
                   <div class="d-flex gap-2">
-                    <button class="ds-btn ds-btn-outline ds-btn-sm edit-btn" data-id="${z._id}" data-name="${z.name}" data-code="${z.code||''}" data-username="${z.username||''}" data-status="${z.status||'Active'}">
+                    <button class="ds-btn ds-btn-outline ds-btn-sm edit-btn" data-id="${z._id}" data-name="${z.name}" data-code="${z.code || ''}" data-username="${z.username || ''}" data-status="${z.status || 'Active'}">
                       <i class="ph ph-pencil-simple"></i> Edit
                     </button>
                     <button class="ds-btn ds-btn-outline ds-btn-sm text-danger delete-btn" data-id="${z._id}" data-name="${z.name}">
@@ -279,4 +289,5 @@
     });
   </script>
 </body>
+
 </html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +15,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
+
 <body class="dashboard-body">
   <div class="ds-sidebar-overlay" id="sidebar-overlay"></div>
   <aside class="ds-sidebar" id="sidebar">
@@ -83,7 +85,8 @@
 
       <div class="ds-card">
         <div class="ds-card-header">
-          <h3 class="ds-card-title"><i class="ph ph-users"></i> Users <span class="ds-badge ds-badge-primary ms-2" id="user-count-badge">0</span></h3>
+          <h3 class="ds-card-title"><i class="ph ph-users"></i> Users <span class="ds-badge ds-badge-primary ms-2"
+              id="user-count-badge">0</span></h3>
         </div>
         <div class="ds-card-body p-0">
           <div class="ds-table-wrapper">
@@ -102,7 +105,13 @@
                 </tr>
               </thead>
               <tbody id="users-table-body">
-                <tr><td colspan="8"><div class="ds-loading-overlay"><div class="ds-spinner"></div></div></td></tr>
+                <tr>
+                  <td colspan="8">
+                    <div class="ds-loading-overlay">
+                      <div class="ds-spinner"></div>
+                    </div>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -156,7 +165,8 @@
           </div>
           <div class="col-12" id="password-field-group">
             <div class="ds-form-group">
-              <label class="ds-form-label" for="user-password">Password <span class="text-danger" id="pw-required">*</span></label>
+              <label class="ds-form-label" for="user-password">Password <span class="text-danger"
+                  id="pw-required">*</span></label>
               <input type="text" class="ds-form-control" id="user-password" placeholder="Set password">
               <small class="text-muted" id="pw-hint"></small>
             </div>
@@ -216,4 +226,5 @@
   <script src="/javascripts/notifications.js"></script>
   <script src="/javascripts/super-admin-users.js?v=2"></script>
 </body>
+
 </html>
