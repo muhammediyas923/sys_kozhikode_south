@@ -290,8 +290,10 @@ async function getProgramsWithCompletion(userId, options = {}) {
   if (options.userRole) {
     programs = programs.filter(p => {
       if (!p.assignTo || p.assignTo.length === 0) return false;
-      const roleVal = Array.isArray(p.assignTo) ? p.assignTo[0] : p.assignTo;
-      return roleVal === options.userRole;
+      if (Array.isArray(p.assignTo)) {
+        return p.assignTo.includes(options.userRole);
+      }
+      return p.assignTo === options.userRole;
     });
   }
 
@@ -331,8 +333,10 @@ async function getAggregatePrograms(userRole, userDetails) {
   if (userRole) {
     programs = programs.filter(p => {
       if (!p.assignTo || p.assignTo.length === 0) return false;
-      const roleVal = Array.isArray(p.assignTo) ? p.assignTo[0] : p.assignTo;
-      return roleVal === userRole;
+      if (Array.isArray(p.assignTo)) {
+        return p.assignTo.includes(userRole);
+      }
+      return p.assignTo === userRole;
     });
   }
 

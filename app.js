@@ -4,10 +4,13 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var session = require('express-session');
+var hbs = require('hbs');
+var config = require('./config/env');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var apiRouter = require('./routes/api');
+var paymentsRouter = require('./routes/payments');
 
 var app = express();
 
@@ -15,15 +18,36 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
 
+// Register Handlebars helpers
+hbs.registerHelper('eq', function (a, b) {
+  return a === b;
+});
+hbs.registerHelper('formatNumber', function (num) {
+  return Number(num || 0).toLocaleString('en-IN');
+});
+hbs.registerHelper('formatDate', function (date) {
+  if (!date) return '-';
+  return new Date(date).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+});
+
 app.use(logger('dev'));
-app.use(express.json());
+// Capture rawBody for webhook HMAC verification while parsing JSON
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'sys-session-secret',
+  secret: config.session.secret,
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 60 * 60 * 1000 }
+  cookie: { maxAge: config.session.maxAge }
 }));
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
@@ -41,6 +65,7 @@ app.use(function (req, res, next) {
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/api', apiRouter);
+app.use('/', paymentsRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

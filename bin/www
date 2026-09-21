@@ -7,16 +7,18 @@
 var app = require('../app');
 var debug = require('debug')('sys-kozhikode-south:server');
 var http = require('http');
+var config = require('../config/env');
 var db = require('../config/connection');
 var userHelper = require('../helpers/user-helper');
 var zoneHelper = require('../helpers/zone-helper');
 var circleHelper = require('../helpers/circle-helper');
+var paymentHelper = require('../helpers/payment-helper');
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '4000');
+var port = normalizePort(config.app.port || '3000');
 app.set('port', port);
 
 /**
@@ -32,6 +34,7 @@ db.connect()
   .then(() => userHelper.seedSuperAdmin())
   .then(() => zoneHelper.seedDefaultZones())
   .then(() => circleHelper.seedDefaultCircles())
+  .then(() => paymentHelper.initPaymentIndexes())
   .then(() => {
     server.listen(port, '0.0.0.0');
   })

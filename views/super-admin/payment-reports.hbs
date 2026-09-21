@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Reports | SYS Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/stylesheets/variables.css">
+  <link rel="stylesheet" href="/stylesheets/dashboard.css?v=2">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#14533e">
+  <link rel="apple-touch-icon" href="/images/icons/icon-192x192.png">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <style>
+    .metric-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 1.75rem;
+    }
+    .stat-card-gradient {
+      background: #ffffff;
+      border: 1px solid rgba(20, 83, 62, 0.12);
+      border-radius: 16px;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+      transition: all 0.25s ease;
+    }
+    .stat-card-gradient:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(20, 83, 62, 0.08);
+    }
+    .stat-card-gradient::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--card-accent, #14533e);
+    }
+    .stat-icon-wrapper {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 0.75rem;
+      background: var(--icon-bg, rgba(20, 83, 62, 0.1));
+      color: var(--icon-color, #14533e);
+    }
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #1a2521;
+      line-height: 1.1;
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      margin-top: 0.25rem;
+    }
+    .th-sortable {
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s ease;
+    }
+    .th-sortable:hover {
+      background: #f1f5f9;
+    }
+    .badge-role {
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body class="dashboard-body">
+  <div class="ds-sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="ds-sidebar" id="sidebar">
+    <div class="ds-sidebar-brand">
+      <img src="/images/Gemini_Generated_Image_41luhh41luhh41lu-removebg-preview.png" alt="SYS" class="ds-sidebar-logo">
+      <div>
+        <div class="ds-sidebar-title">SYS Admin</div>
+        <div class="ds-sidebar-subtitle">Kozhikode South</div>
+      </div>
+    </div>
+
+    <nav class="ds-sidebar-nav">
+      <div class="ds-nav-section-title">Overview</div>
+      <a href="/super-admin" class="ds-nav-link">
+        <i class="ph ph-squares-four"></i> Dashboard
+      </a>
+
+      <div class="ds-nav-section-title">Management</div>
+      <a href="/super-admin/zones" class="ds-nav-link">
+        <i class="ph ph-map-pin"></i> Zones
+      </a>
+      <a href="/super-admin/circles" class="ds-nav-link">
+        <i class="ph ph-circles-three"></i> Circles
+      </a>
+      <a href="/super-admin/users" class="ds-nav-link">
+        <i class="ph ph-users"></i> Unit Users
+      </a>
+      <a href="/super-admin/programs" class="ds-nav-link">
+        <i class="ph ph-clipboard-text"></i> Programs
+      </a>
+      <a href="/super-admin/profile" class="ds-nav-link">
+        <i class="ph ph-gear"></i> Account Settings
+      </a>
+
+      <div class="ds-nav-section-title">Analytics</div>
+      <a href="/super-admin/monthly-reports" class="ds-nav-link">
+        <i class="ph ph-calendar-check"></i> Program Reports
+      </a>
+      <a href="/super-admin/payment-reports" class="ds-nav-link active">
+        <i class="ph ph-credit-card"></i> Payment Reports
+      </a>
+    </nav>
+
+    <div class="ds-sidebar-footer">
+      <div class="ds-user-widget">
+        <div class="ds-user-avatar">SA</div>
+        <div class="ds-user-info">
+          <div class="ds-user-name">{{user.unitName}}</div>
+          <div class="ds-user-role">Super Admin</div>
+        </div>
+        <a href="/logout" class="ds-logout-btn" title="Logout"><i class="ph ph-sign-out"></i></a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <div class="ds-main">
+    <!-- TOP BAR -->
+    <header class="ds-topbar">
+      <button type="button" class="ds-topbar-menu-btn" id="sidebar-toggle" aria-label="Toggle sidebar" onclick="window.toggleSidebar?.(event)">
+        <i class="ph ph-list"></i>
+      </button>
+      <div class="ds-topbar-title">Payment Reports <span>/ Gateway Analytics & Audit</span></div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="ds-content">
+      <div class="ds-page-header">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <h1>Payment Reports & Audit</h1>
+            <p>Real-time Razorpay transaction monitoring, verification audit, and financial reconciliation.</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="ds-btn ds-btn-outline ds-btn-sm" id="export-csv-btn">
+              <i class="ph ph-file-text"></i> CSV
+            </button>
+            <button type="button" class="ds-btn ds-btn-outline ds-btn-sm" id="export-pdf-btn">
+              <i class="ph ph-file-pdf"></i> PDF
+            </button>
+            <button type="button" class="ds-btn ds-btn-primary ds-btn-sm" id="export-excel-btn">
+              <i class="ph ph-file-xls"></i> Excel
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI SUMMARY CARDS -->
+      <div class="metric-card-grid">
+        <!-- Total Collections -->
+        <div class="stat-card-gradient" style="--card-accent:#16a34a; --icon-bg:#f0fdf4; --icon-color:#16a34a;">
+          <div class="stat-icon-wrapper"><i class="ph ph-currency-inr"></i></div>
+          <div class="stat-value" id="kpi-total-amount">₹0</div>
+          <div class="stat-label">Total Collections (Paid)</div>
+        </div>
+        <!-- Successful Payments -->
+        <div class="stat-card-gradient" style="--card-accent:#14533e; --icon-bg:#e8f5f0; --icon-color:#14533e;">
+          <div class="stat-icon-wrapper"><i class="ph ph-check-circle"></i></div>
+          <div class="stat-value" id="kpi-paid-count">0</div>
+          <div class="stat-label">Successful Transactions</div>
+        </div>
+        <!-- Pending / Processing -->
+        <div class="stat-card-gradient" style="--card-accent:#f5a623; --icon-bg:#fef3d8; --icon-color:#d97706;">
+          <div class="stat-icon-wrapper"><i class="ph ph-clock"></i></div>
+          <div class="stat-value" id="kpi-pending-count">0</div>
+          <div class="stat-label">Pending / Incomplete</div>
+        </div>
+        <!-- Failed Payments -->
+        <div class="stat-card-gradient" style="--card-accent:#e53e3e; --icon-bg:#fff5f5; --icon-color:#e53e3e;">
+          <div class="stat-icon-wrapper"><i class="ph ph-x-circle"></i></div>
+          <div class="stat-value" id="kpi-failed-count">0</div>
+          <div class="stat-label">Failed / Cancelled</div>
+        </div>
+        <!-- Total Transactions -->
+        <div class="stat-card-gradient" style="--card-accent:#0284c7; --icon-bg:#eff6ff; --icon-color:#0284c7;">
+          <div class="stat-icon-wrapper"><i class="ph ph-receipt"></i></div>
+          <div class="stat-value" id="kpi-total-count">0</div>
+          <div class="stat-label">Total Payment Requests</div>
+        </div>
+      </div>
+
+      <!-- FILTER PANEL -->
+      <div class="ds-card mb-4">
+        <div class="ds-card-header d-flex align-items-center justify-content-between">
+          <h3 class="ds-card-title"><i class="ph ph-funnel"></i> Filter Transactions</h3>
+          <button type="button" class="ds-btn ds-btn-outline ds-btn-sm" id="reset-filters-btn">
+            <i class="ph ph-arrow-counter-clockwise"></i> Reset Filters
+          </button>
+        </div>
+        <div class="ds-card-body">
+          <div class="row g-3">
+            <!-- Quick Date Preset -->
+            <div class="col-md-3">
+              <label class="ds-form-label" for="filter-quick-date">Time Period</label>
+              <select class="ds-form-control ds-form-select" id="filter-quick-date">
+                <option value="">All Time</option>
+                <option value="today">Today</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+                <option value="custom">Custom Date Range...</option>
+              </select>
+            </div>
+
+            <!-- Custom Date Range (hidden by default unless selected) -->
+            <div class="col-md-3 custom-date-group d-none">
+              <label class="ds-form-label" for="filter-start-date">From Date</label>
+              <input type="date" class="ds-form-control" id="filter-start-date">
+            </div>
+            <div class="col-md-3 custom-date-group d-none">
+              <label class="ds-form-label" for="filter-end-date">To Date</label>
+              <input type="date" class="ds-form-control" id="filter-end-date">
+            </div>
+
+            <!-- User Role -->
+            <div class="col-md-3">
+              <label class="ds-form-label" for="filter-role">User Role</label>
+              <select class="ds-form-control ds-form-select" id="filter-role">
+                <option value="">All Roles</option>
+                <option value="UnitUser">Unit User</option>
+                <option value="CircleUser">Circle User</option>
+                <option value="ZoneUser">Zone User</option>
+              </select>
+            </div>
+
+            <!-- Status -->
+            <div class="col-md-3">
+              <label class="ds-form-label" for="filter-status">Payment Status</label>
+              <select class="ds-form-control ds-form-select" id="filter-status">
+                <option value="">All Statuses</option>
+                <option value="paid">Paid (Successful)</option>
+                <option value="created">Created / In Progress</option>
+                <option value="failed">Failed / Cancelled</option>
+              </select>
+            </div>
+
+            <!-- Zone -->
+            <div class="col-md-3">
+              <label class="ds-form-label" for="filter-zone">Zone</label>
+              <select class="ds-form-control ds-form-select" id="filter-zone">
+                <option value="">All Zones</option>
+              </select>
+            </div>
+
+            <!-- Circle -->
+            <div class="col-md-3">
+              <label class="ds-form-label" for="filter-circle">Circle</label>
+              <select class="ds-form-control ds-form-select" id="filter-circle">
+                <option value="">All Circles</option>
+              </select>
+            </div>
+
+            <!-- Purpose -->
+            <div class="col-md-3">
+              <label class="ds-form-label" for="filter-purpose">Purpose</label>
+              <select class="ds-form-control ds-form-select" id="filter-purpose">
+                <option value="">All Purposes</option>
+                <option value="Annual Membership Subscription">Annual Membership Subscription</option>
+                <option value="Relief & Charity Fund">Relief & Charity Fund</option>
+                <option value="Islamic Educational Campaign">Islamic Educational Campaign</option>
+                <option value="Building & Infrastructure Fund">Building & Infrastructure Fund</option>
+                <option value="General Contribution">General Contribution</option>
+              </select>
+            </div>
+
+            <!-- Search -->
+            <div class="col-md-6">
+              <label class="ds-form-label" for="filter-search">Search</label>
+              <div class="input-group">
+                <input type="text" class="ds-form-control" id="filter-search" placeholder="Search Order ID, Payment ID, Payer Name, Username...">
+                <button type="button" class="ds-btn ds-btn-primary" id="apply-filters-btn">
+                  <i class="ph ph-magnifying-glass"></i> Search
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULTS TABLE -->
+      <div class="ds-card">
+        <div class="ds-card-header d-flex align-items-center justify-content-between">
+          <h3 class="ds-card-title">
+            <i class="ph ph-table"></i> Transactions List
+            <span class="ds-badge ds-badge-primary ms-2" id="report-total-badge">0</span>
+          </h3>
+          <div class="d-flex align-items-center gap-2">
+            <label class="text-muted small mb-0">Rows per page:</label>
+            <select class="form-select form-select-sm" id="page-size-select" style="width:75px;">
+              <option value="10">10</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="ds-card-body p-0">
+          <div class="ds-table-wrapper">
+            <table class="ds-table" id="admin-payments-table">
+              <thead>
+                <tr>
+                  <th class="th-sortable" data-sort="createdAt">
+                    Date & Time <i class="ph ph-caret-down"></i>
+                  </th>
+                  <th>User / Payer</th>
+                  <th>Role</th>
+                  <th>Zone / Circle</th>
+                  <th class="th-sortable" data-sort="amount">
+                    Amount <i class="ph ph-arrows-down-up"></i>
+                  </th>
+                  <th>Purpose</th>
+                  <th>Status</th>
+                  <th>Razorpay Payment ID</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="payments-table-body">
+                <tr>
+                  <td colspan="9">
+                    <div class="text-center py-5">
+                      <div class="spinner-border text-success" role="status"></div>
+                      <div class="mt-2 text-muted">Loading payment transactions...</div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PAGINATION BAR -->
+        <div class="ds-card-footer d-flex flex-wrap align-items-center justify-content-between p-3 border-top" id="pagination-bar">
+          <div class="text-muted small" id="pagination-info">Showing 0 of 0 records</div>
+          <div class="d-flex gap-1" id="pagination-controls">
+            <button type="button" class="ds-btn ds-btn-outline ds-btn-sm" id="prev-page-btn" disabled>
+              <i class="ph ph-caret-left"></i> Previous
+            </button>
+            <span class="btn btn-sm btn-light disabled px-3 fw-semibold" id="current-page-display">Page 1 of 1</span>
+            <button type="button" class="ds-btn ds-btn-outline ds-btn-sm" id="next-page-btn" disabled>
+              Next <i class="ph ph-caret-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- TRANSACTION DETAILS MODAL -->
+  <div class="ds-modal-backdrop" id="detail-modal-backdrop">
+    <div class="ds-modal" style="max-width:640px;">
+      <div class="ds-modal-header">
+        <h4 class="ds-modal-title"><i class="ph ph-receipt"></i> Payment Transaction Audit Details</h4>
+        <button type="button" class="ds-modal-close" id="close-detail-modal">&times;</button>
+      </div>
+      <div class="ds-modal-body" id="detail-modal-body">
+        <div class="text-center py-4">
+          <div class="spinner-border text-success" role="status"></div>
+        </div>
+      </div>
+      <div class="ds-modal-footer">
+        <button type="button" class="ds-btn ds-btn-outline" id="close-detail-modal-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ds-toast-container" id="toast-container"></div>
+
+  <script src="/javascripts/pwa.js"></script>
+  <script src="/javascripts/notifications.js"></script>
+  <script src="/javascripts/super-admin-payment-reports.js?v=3"></script>
+</body>
+
+</html>

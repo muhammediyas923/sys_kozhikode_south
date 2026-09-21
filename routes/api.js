@@ -691,8 +691,10 @@ router.post('/unit/programs/:id/submit-completion',
         return res.status(404).json({ success: false, message: 'Program not found.' });
       }
       if (program.assignTo && program.assignTo.length > 0) {
-        const assignedRole = Array.isArray(program.assignTo) ? program.assignTo[0] : program.assignTo;
-        if (assignedRole !== user.role) {
+        const isAssigned = Array.isArray(program.assignTo)
+          ? program.assignTo.includes(user.role)
+          : program.assignTo === user.role;
+        if (!isAssigned) {
           return res.status(403).json({ success: false, message: 'Access denied. This program is not assigned to your role.' });
         }
       }

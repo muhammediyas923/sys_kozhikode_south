@@ -2,8 +2,10 @@ const bcrypt = require('bcrypt');
 const { MongoClient } = require('mongodb');
 const collections = require('../config/collections');
 
-const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017';
-const dbName = process.env.MONGODB_DB || 'sys';
+const config = require('../config/env');
+
+const uri = config.db.uri;
+const dbName = config.db.name;
 
 const username = process.argv[2];
 const password = process.argv[3];
@@ -14,7 +16,7 @@ if (!username || !password) {
 }
 
 (async () => {
-  const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+  const client = new MongoClient(uri);
   try {
     await client.connect();
     const db = client.db(dbName);

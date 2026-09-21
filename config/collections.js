@@ -6,4 +6,5 @@ module.exports = {
   PROGRAM_COMPLETIONS_COLLECTION: 'program_completions',
   PROGRAM_UPDATES_COLLECTION: 'program_updates',
   NOTIFICATIONS_COLLECTION: 'notifications',
+  PAYMENTS_COLLECTION: 'payments',
 };

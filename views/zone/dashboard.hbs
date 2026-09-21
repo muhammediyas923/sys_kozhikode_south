@@ -38,6 +38,9 @@
         <i class="ph ph-clipboard-text"></i> My Programs
         <span class="ds-nav-badge" id="pending-badge">...</span>
       </a>
+      <a href="/payments" class="ds-nav-link">
+        <i class="ph ph-credit-card"></i> Payments
+      </a>
     </nav>
 
     <div class="ds-sidebar-footer">
@@ -320,7 +323,7 @@
 
   <script>
     window.__USER_ROLE__ = '{{user.role}}';
-    window.__INITIAL_PROGRAMS__ = {{ { programsJson } }};
+    window.__INITIAL_PROGRAMS__ = {{{programsJson}}};
     console.debug('unit dashboard initial programs', window.__INITIAL_PROGRAMS__);
   </script>
   <script src="/javascripts/pwa.js"></script>

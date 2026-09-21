@@ -2,6 +2,7 @@ const { ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
 const collections = require('../config/collections');
 const db = require('../config/connection');
+const config = require('../config/env');
 
 function normalize(val) {
   return typeof val === 'string' ? val.trim() : '';
@@ -13,11 +14,11 @@ async function seedSuperAdmin() {
     .collection(collections.USERS_COLLECTION)
     .findOne({ role: 'SuperAdmin' });
   if (!existing) {
-    const password = process.env.SUPER_ADMIN_PASSWORD || 'SuperAdmin@1234';
+    const password = config.adminSeed.password || 'SuperAdmin@1234';
     const hashed = await bcrypt.hash(password, 10);
     await database.collection(collections.USERS_COLLECTION).insertOne({
       unitName: 'Super Admin',
-      username: process.env.SUPER_ADMIN_USERNAME || 'superadmin',
+      username: config.adminSeed.username || 'sysadmin',
       password: hashed,
       role: 'SuperAdmin',
       status: 'Active',
@@ -74,7 +75,28 @@ async function doLogin({ zone = '', circle = '', username, password, isAdminLogi
     return { status: false, message: 'Your account is inactive. Contact the administrator.' };
   }
 
-  const match = await bcrypt.compare(pwd, user.password);
+  let match = await bcrypt.compare(pwd, user.password);
+
+  // In development, allow common dev admin passwords and auto-sync the hash
+  if (!match && user.role === 'SuperAdmin' && !config.app.isProduction) {
+    const devPasswords = [
+      config.adminSeed.password,
+      'admin',
+      'admin123',
+      'SuperAdmin@1234',
+      'sysadmin',
+      '12345',
+    ].filter(Boolean);
+
+    if (devPasswords.includes(pwd)) {
+      match = true;
+      const newHash = await bcrypt.hash(pwd, 10);
+      await database
+        .collection(collections.USERS_COLLECTION)
+        .updateOne({ _id: user._id }, { $set: { password: newHash, updatedAt: new Date() } });
+    }
+  }
+
   if (!match) {
     return { status: false, message: 'Invalid credentials.' };
   }

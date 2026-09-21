@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{pageTitle}} | SYS Kozhikode South</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/stylesheets/variables.css">
+  <link rel="stylesheet" href="/stylesheets/dashboard.css?v=2">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#14533e">
+  <link rel="apple-touch-icon" href="/images/icons/icon-192x192.png">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Razorpay Standard Checkout SDK -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    .payment-hero-card {
+      background: linear-gradient(135deg, #14533e 0%, #0a2e1f 100%);
+      color: #ffffff;
+      border-radius: var(--ds-radius-lg);
+      padding: 1.75rem 2rem;
+      margin-bottom: 1.75rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(20, 83, 62, 0.2);
+    }
+    .payment-hero-card::after {
+      content: '';
+      position: absolute;
+      right: -30px;
+      bottom: -40px;
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(circle, rgba(245, 166, 35, 0.2) 0%, rgba(20, 83, 62, 0) 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .preset-amount-btn {
+      border: 1.5px solid #e2e8f0;
+      background: #ffffff;
+      color: #1e293b;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 10px 16px;
+      border-radius: 10px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .preset-amount-btn:hover {
+      border-color: #14533e;
+      background: #f0fdf4;
+      color: #14533e;
+      transform: translateY(-2px);
+    }
+    .preset-amount-btn.active {
+      border-color: #14533e;
+      background: #14533e;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(20, 83, 62, 0.25);
+    }
+    .test-mode-pill {
+      background: rgba(245, 166, 35, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 166, 35, 0.4);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .user-hierarchy-chip {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .secure-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+  </style>
+</head>
+
+<body class="dashboard-body">
+  <div class="ds-sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="ds-sidebar" id="sidebar">
+    <div class="ds-sidebar-brand">
+      <img src="/images/Gemini_Generated_Image_41luhh41luhh41lu-removebg-preview.png" alt="SYS" class="ds-sidebar-logo">
+      <div>
+        <div class="ds-sidebar-title">{{user.unitName}}</div>
+        <div class="ds-sidebar-subtitle">
+          {{#if user.zone}}{{user.zone}}{{/if}}
+          {{#if user.circle}} · {{user.circle}}{{/if}}
+        </div>
+      </div>
+    </div>
+
+    <nav class="ds-sidebar-nav">
+      <div class="ds-nav-section-title">Navigation</div>
+      <a href="/dashboard" class="ds-nav-link">
+        <i class="ph ph-squares-four"></i> Dashboard
+      </a>
+      <a href="/payments" class="ds-nav-link active">
+        <i class="ph ph-credit-card"></i> Make Payment
+      </a>
+    </nav>
+
+    <div class="ds-sidebar-footer">
+      <div class="ds-user-widget">
+        <div class="ds-user-avatar">{{#if (eq user.role 'ZoneUser')}}Z{{else if (eq user.role 'CircleUser')}}C{{else}}U{{/if}}</div>
+        <div class="ds-user-info">
+          <div class="ds-user-name">{{user.username}}</div>
+          <div class="ds-user-role">{{user.role}}</div>
+        </div>
+        <a href="/logout" class="ds-logout-btn" title="Logout"><i class="ph ph-sign-out"></i></a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <div class="ds-main">
+    <!-- TOP BAR -->
+    <header class="ds-topbar">
+      <button type="button" class="ds-topbar-menu-btn" id="sidebar-toggle" aria-label="Toggle sidebar" onclick="window.toggleSidebar?.(event)">
+        <i class="ph ph-list"></i>
+      </button>
+      <div class="ds-topbar-title">Payments <span>/ Make Payment & Contributions</span></div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="ds-content">
+      <!-- HERO / BANNER -->
+      <div class="payment-hero-card">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="test-mode-pill">
+                <i class="ph ph-flask"></i> RAZORPAY TEST MODE
+              </span>
+              <span class="badge" style="background:rgba(255,255,255,0.2); font-weight:500;">
+                Role: {{user.role}}
+              </span>
+            </div>
+            <h1 style="font-size:1.75rem; font-weight:700; margin:0 0 6px;">
+              SYS Kozhikode South Payment Gateway
+            </h1>
+            <p style="margin:0; opacity:0.88; font-size:0.95rem;">
+              Secure payment of membership fees, charity, and district campaign contributions.
+            </p>
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            {{#if user.zone}}
+            <span class="user-hierarchy-chip">
+              <i class="ph ph-map-pin"></i> Zone: {{user.zone}}
+            </span>
+            {{/if}}
+            {{#if user.circle}}
+            <span class="user-hierarchy-chip">
+              <i class="ph ph-circles-three"></i> Circle: {{user.circle}}
+            </span>
+            {{/if}}
+            {{#if (eq user.role 'UnitUser')}}
+            <span class="user-hierarchy-chip">
+              <i class="ph ph-house-line"></i> Unit: {{user.unitName}}
+            </span>
+            {{/if}}
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mb-4">
+        <!-- PAYMENT FORM CARD -->
+        <div class="col-lg-7">
+          <div class="ds-card h-100">
+            <div class="ds-card-header">
+              <h3 class="ds-card-title">
+                <i class="ph ph-currency-inr" style="color:var(--ds-primary);"></i> Payment Details
+              </h3>
+            </div>
+            <div class="ds-card-body">
+              <form id="payment-form" onsubmit="return false;">
+                <!-- Purpose Selection -->
+                <div class="mb-3">
+                  <label class="ds-form-label" for="payment-purpose">Payment Purpose / Category *</label>
+                  <select class="ds-form-control ds-form-select" id="payment-purpose" required>
+                    <option value="Annual Membership Subscription">Annual Membership Subscription (വാർഷിക വരിസംഖ്യ)</option>
+                    <option value="Relief & Charity Fund">Relief & Charity Fund (സാന്ത്വനം / റിലീഫ് ഫണ്ട്)</option>
+                    <option value="Islamic Educational Campaign">Islamic Educational Campaign (ഇസ്ലാമിക് കാമ്പയിൻ)</option>
+                    <option value="Building & Infrastructure Fund">Building & Infrastructure Fund (കെട്ടിട നിർമ്മാണ ഫണ്ട്)</option>
+                    <option value="General Contribution">General Contribution / Donation (പൊതു ഫണ്ട്)</option>
+                  </select>
+                </div>
+
+                <!-- Preset Amounts -->
+                <div class="mb-3">
+                  <label class="ds-form-label">Select Amount (INR) *</label>
+                  <div class="row g-2 mb-2" id="preset-amounts-container">
+                    <div class="col-4 col-sm-2">
+                      <button type="button" class="preset-amount-btn w-100" data-amount="100">₹100</button>
+                    </div>
+                    <div class="col-4 col-sm-2">
+                      <button type="button" class="preset-amount-btn w-100" data-amount="250">₹250</button>
+                    </div>
+                    <div class="col-4 col-sm-2">
+                      <button type="button" class="preset-amount-btn w-100 active" data-amount="500">₹500</button>
+                    </div>
+                    <div class="col-4 col-sm-2">
+                      <button type="button" class="preset-amount-btn w-100" data-amount="1000">₹1,000</button>
+                    </div>
+                    <div class="col-4 col-sm-2">
+                      <button type="button" class="preset-amount-btn w-100" data-amount="2500">₹2,500</button>
+                    </div>
+                    <div class="col-4 col-sm-2">
+                      <button type="button" class="preset-amount-btn w-100" data-amount="5000">₹5,000</button>
+                    </div>
+                  </div>
+                  <!-- Custom Amount Field -->
+                  <div class="input-group mt-2">
+                    <span class="input-group-text bg-light text-muted fw-bold">₹</span>
+                    <input type="number" class="ds-form-control" id="custom-amount" min="1" max="500000" step="1" value="500" placeholder="Or enter custom amount in INR" required>
+                  </div>
+                  <div class="form-text text-muted" style="font-size:0.8rem;">Min ₹1 · Max ₹5,00,000 per transaction</div>
+                </div>
+
+                <!-- Description / Remarks -->
+                <div class="mb-3">
+                  <label class="ds-form-label" for="payment-desc">Remarks / Note (Optional)</label>
+                  <input type="text" class="ds-form-control" id="payment-desc" maxlength="200" placeholder="e.g. Kozhikode South zone collection receipt">
+                </div>
+
+                <!-- Error / Status Alert -->
+                <div id="payment-alert" class="alert d-none py-2 px-3 mb-3" style="font-size:0.875rem;"></div>
+
+                <!-- Submit Button -->
+                <button type="button" class="ds-btn ds-btn-primary w-100 py-3" id="start-payment-btn" style="font-size:1.05rem; font-weight:700;">
+                  <i class="ph ph-shield-check"></i> Pay <span id="btn-amount-display">₹500</span> via Razorpay
+                </button>
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center mt-3 pt-2 border-top">
+                  <span class="secure-badge">
+                    <i class="ph ph-lock-key" style="color:#16a34a;"></i> 256-bit Bank Grade Encryption
+                  </span>
+                  <span class="secure-badge">
+                    <i class="ph ph-check-circle" style="color:#16a34a;"></i> Instant Official Receipt
+                  </span>
+                  <span class="secure-badge">
+                    <i class="ph ph-shield" style="color:#14533e;"></i> Razorpay Verified
+                  </span>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- USER IDENTITY & SUMMARY CARD -->
+        <div class="col-lg-5">
+          <div class="ds-card h-100">
+            <div class="ds-card-header">
+              <h3 class="ds-card-title">
+                <i class="ph ph-user-circle" style="color:var(--ds-primary);"></i> Payer Identity (Server Verified)
+              </h3>
+            </div>
+            <div class="ds-card-body">
+              <p class="text-muted" style="font-size:0.875rem; margin-bottom:1rem;">
+                Payments are recorded securely under your authenticated SYS identity:
+              </p>
+
+              <div class="p-3 bg-light rounded-3 mb-3" style="border:1px solid #e2e8f0;">
+                <div class="d-flex align-items-center justify-content-between py-1 border-bottom">
+                  <span class="text-muted small">Account Name:</span>
+                  <span class="fw-bold text-dark">{{user.unitName}}</span>
+                </div>
+                <div class="d-flex align-items-center justify-content-between py-1 border-bottom">
+                  <span class="text-muted small">Username:</span>
+                  <span class="fw-bold text-dark">{{user.username}}</span>
+                </div>
+                <div class="d-flex align-items-center justify-content-between py-1 border-bottom">
+                  <span class="text-muted small">Role:</span>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">{{user.role}}</span>
+                </div>
+                {{#if user.zone}}
+                <div class="d-flex align-items-center justify-content-between py-1 border-bottom">
+                  <span class="text-muted small">Zone:</span>
+                  <span class="fw-semibold text-dark">{{user.zone}}</span>
+                </div>
+                {{/if}}
+                {{#if user.circle}}
+                <div class="d-flex align-items-center justify-content-between py-1">
+                  <span class="text-muted small">Circle:</span>
+                  <span class="fw-semibold text-dark">{{user.circle}}</span>
+                </div>
+                {{/if}}
+              </div>
+
+              <!-- Test Mode Guidance -->
+              <div class="p-3 rounded-3" style="background:#fffbeb; border:1px solid #fef3c7;">
+                <div class="d-flex align-items-start gap-2">
+                  <i class="ph ph-info" style="font-size:1.25rem; color:#d97706; margin-top:2px;"></i>
+                  <div>
+                    <h6 class="mb-1" style="font-weight:700; color:#92400e; font-size:0.875rem;">Razorpay Test Mode Active</h6>
+                    <p class="mb-0" style="font-size:0.8rem; color:#b45309; line-height:1.4;">
+                      You are in Test Mode. You can complete payments using any dummy card, UPI, or netbanking credentials provided by Razorpay's test simulator. No real money will be charged.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MY PAYMENT HISTORY -->
+      <div class="ds-card">
+        <div class="ds-card-header d-flex align-items-center justify-content-between">
+          <h3 class="ds-card-title">
+            <i class="ph ph-clock-counter-clockwise" style="color:var(--ds-primary);"></i> My Payment History
+          </h3>
+          <button type="button" class="ds-btn ds-btn-outline ds-btn-sm" id="refresh-history-btn">
+            <i class="ph ph-arrows-clockwise"></i> Refresh
+          </button>
+        </div>
+        <div class="ds-card-body p-0">
+          <div class="ds-table-wrapper">
+            <table class="ds-table" id="user-history-table">
+              <thead>
+                <tr>
+                  <th>Date & Time</th>
+                  <th>Order ID</th>
+                  <th>Payment ID</th>
+                  <th>Purpose</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="user-history-tbody">
+                {{#if history.length}}
+                {{#each history}}
+                <tr>
+                  <td>{{formatDate createdAt}}</td>
+                  <td><code>{{orderId}}</code></td>
+                  <td>
+                    {{#if paymentId}}
+                    <code class="text-success">{{paymentId}}</code>
+                    {{else}}
+                    <span class="text-muted">—</span>
+                    {{/if}}
+                  </td>
+                  <td>{{purpose}}</td>
+                  <td class="fw-bold">₹{{formatNumber amount}}</td>
+                  <td>
+                    {{#if (eq status 'paid')}}
+                    <span class="ds-badge ds-badge-success"><i class="ph ph-check-circle"></i> Paid</span>
+                    {{else if (eq status 'failed')}}
+                    <span class="ds-badge ds-badge-danger"><i class="ph ph-x-circle"></i> Failed</span>
+                    {{else}}
+                    <span class="ds-badge ds-badge-warning"><i class="ph ph-clock"></i> {{status}}</span>
+                    {{/if}}
+                  </td>
+                  <td>
+                    <button type="button" class="ds-btn ds-btn-outline ds-btn-sm view-receipt-btn" data-id="{{_id}}">
+                      <i class="ph ph-receipt"></i> Receipt
+                    </button>
+                  </td>
+                </tr>
+                {{/each}}
+                {{else}}
+                <tr>
+                  <td colspan="7">
+                    <div class="ds-empty">
+                      <i class="ph ph-receipt ds-empty-icon"></i>
+                      <h3>No payments yet</h3>
+                      <p>Completed payments will appear in this history table.</p>
+                    </div>
+                  </td>
+                </tr>
+                {{/if}}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- RECEIPT MODAL -->
+  <div class="ds-modal-backdrop" id="receipt-modal-backdrop">
+    <div class="ds-modal" style="max-width:520px;">
+      <div class="ds-modal-header">
+        <h4 class="ds-modal-title"><i class="ph ph-receipt"></i> Payment Receipt</h4>
+        <button type="button" class="ds-modal-close" id="close-receipt-modal">&times;</button>
+      </div>
+      <div class="ds-modal-body" id="receipt-modal-body">
+        <div class="text-center py-4">
+          <div class="spinner-border text-success" role="status"></div>
+        </div>
+      </div>
+      <div class="ds-modal-footer">
+        <button type="button" class="ds-btn ds-btn-outline" id="print-receipt-btn"><i class="ph ph-printer"></i> Print</button>
+        <button type="button" class="ds-btn ds-btn-primary" id="done-receipt-btn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ds-toast-container" id="toast-container"></div>
+
+  <script>
+    window.__RAZORPAY_KEY_ID__ = '{{keyId}}';
+    window.__USER_DETAILS__ = {
+      id: '{{user._id}}',
+      username: '{{user.username}}',
+      name: '{{user.unitName}}',
+      role: '{{user.role}}',
+      zone: '{{user.zone}}',
+      circle: '{{user.circle}}'
+    };
+  </script>
+  <script src="/javascripts/pwa.js"></script>
+  <script src="/javascripts/notifications.js"></script>
+  <script src="/javascripts/payments.js?v=3"></script>
+</body>
+
+</html>
