@@ -222,16 +222,16 @@ document.addEventListener('DOMContentLoaded', () => {
           <tr>
             <td><span class="small">${dateStr}</span></td>
             <td>
-              <div class="fw-bold text-dark">${p.displayName || p.username}</div>
-              <div class="text-muted small">${p.username}</div>
+              <div class="fw-bold text-dark">${escapeHtml(p.displayName || p.username)}</div>
+              <div class="text-muted small">${escapeHtml(p.username)}</div>
             </td>
             <td>${roleBadge}</td>
-            <td><span class="small text-muted">${hierarchy}</span></td>
+            <td><span class="small text-muted">${escapeHtml(hierarchy)}</span></td>
             <td class="fw-bold text-dark">₹${Number(p.amount || 0).toLocaleString('en-IN')}</td>
-            <td><span class="small">${p.purpose || '-'}</span></td>
+            <td><span class="small">${escapeHtml(p.purpose || '-')}</span></td>
             <td>${statusBadge}</td>
             <td>
-              ${p.paymentId ? `<code class="text-success small">${p.paymentId}</code>` : '<span class="text-muted small">—</span>'}
+              ${p.paymentId ? `<code class="text-success small">${escapeHtml(p.paymentId)}</code>` : '<span class="text-muted small">—</span>'}
             </td>
             <td>
               <button type="button" class="ds-btn ds-btn-outline ds-btn-sm view-detail-btn" data-id="${p._id}">
@@ -358,12 +358,12 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="badge bg-success-subtle text-success border border-success-subtle">${p.role}</span>
           </div>
           <div class="row g-2 small">
-            <div class="col-sm-6"><span class="text-muted">Display Name:</span> <strong>${p.displayName || '—'}</strong></div>
-            <div class="col-sm-6"><span class="text-muted">Username:</span> <strong>${p.username || '—'}</strong></div>
-            <div class="col-sm-6"><span class="text-muted">User ID:</span> <code>${p.userId || '—'}</code></div>
-            ${p.unit ? `<div class="col-sm-6"><span class="text-muted">Unit:</span> <strong>${p.unit}</strong></div>` : ''}
-            ${p.circle ? `<div class="col-sm-6"><span class="text-muted">Circle:</span> <strong>${p.circle}</strong></div>` : ''}
-            ${p.zone ? `<div class="col-sm-6"><span class="text-muted">Zone:</span> <strong>${p.zone}</strong></div>` : ''}
+            <div class="col-sm-6"><span class="text-muted">Display Name:</span> <strong>${escapeHtml(p.displayName || '—')}</strong></div>
+            <div class="col-sm-6"><span class="text-muted">Username:</span> <strong>${escapeHtml(p.username || '—')}</strong></div>
+            <div class="col-sm-6"><span class="text-muted">User ID:</span> <code>${escapeHtml(p.userId || '—')}</code></div>
+            ${p.unit ? `<div class="col-sm-6"><span class="text-muted">Unit:</span> <strong>${escapeHtml(p.unit)}</strong></div>` : ''}
+            ${p.circle ? `<div class="col-sm-6"><span class="text-muted">Circle:</span> <strong>${escapeHtml(p.circle)}</strong></div>` : ''}
+            ${p.zone ? `<div class="col-sm-6"><span class="text-muted">Zone:</span> <strong>${escapeHtml(p.zone)}</strong></div>` : ''}
           </div>
         </div>
 
@@ -373,21 +373,21 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="fs-5 fw-bold text-success">₹${Number(p.amount || 0).toLocaleString('en-IN')}</span>
           </div>
           <div class="row g-2 small">
-            <div class="col-sm-6"><span class="text-muted">Currency:</span> <strong>${p.currency || 'INR'}</strong></div>
-            <div class="col-sm-6"><span class="text-muted">Purpose:</span> <strong>${p.purpose || '—'}</strong></div>
-            <div class="col-12"><span class="text-muted">Remarks / Note:</span> <strong>${p.description || 'None'}</strong></div>
+            <div class="col-sm-6"><span class="text-muted">Currency:</span> <strong>${escapeHtml(p.currency || 'INR')}</strong></div>
+            <div class="col-sm-6"><span class="text-muted">Purpose:</span> <strong>${escapeHtml(p.purpose || '—')}</strong></div>
+            <div class="col-12"><span class="text-muted">Remarks / Note:</span> <strong>${escapeHtml(p.description || 'None')}</strong></div>
             <div class="col-sm-6"><span class="text-muted">Status:</span> 
-              <span class="badge ${isPaid ? 'bg-success' : (p.status === 'failed' ? 'bg-danger' : 'bg-warning text-dark')}">${p.status.toUpperCase()}</span>
+              <span class="badge ${isPaid ? 'bg-success' : (p.status === 'failed' ? 'bg-danger' : 'bg-warning text-dark')}">${escapeHtml(p.status.toUpperCase())}</span>
             </div>
-            ${p.failureReason ? `<div class="col-12 text-danger"><span class="text-muted">Failure Reason:</span> ${p.failureReason}</div>` : ''}
+            ${p.failureReason ? `<div class="col-12 text-danger"><span class="text-muted">Failure Reason:</span> ${escapeHtml(p.failureReason)}</div>` : ''}
           </div>
         </div>
 
         <div class="p-3 bg-light rounded-3 mb-3 border">
           <h6 class="mb-2 fw-bold text-dark"><i class="ph ph-shield-check"></i> Razorpay Audit Information</h6>
           <div class="row g-2 small">
-            <div class="col-12"><span class="text-muted">Razorpay Order ID:</span> <code>${p.orderId}</code></div>
-            <div class="col-12"><span class="text-muted">Razorpay Payment ID:</span> <code>${p.paymentId || 'Not Captured'}</code></div>
+            <div class="col-12"><span class="text-muted">Razorpay Order ID:</span> <code>${escapeHtml(p.orderId || '')}</code></div>
+            <div class="col-12"><span class="text-muted">Razorpay Payment ID:</span> <code>${escapeHtml(p.paymentId || 'Not Captured')}</code></div>
             <div class="col-sm-6"><span class="text-muted">Signature Verified:</span> 
               <span class="badge ${p.signature ? 'bg-success' : 'bg-secondary'}">${p.signature ? 'VERIFIED' : 'UNVERIFIED'}</span>
             </div>

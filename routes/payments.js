@@ -2,6 +2,27 @@ const express = require('express');
 const router = express.Router();
 const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
+
+// Formula injection defense (OWASP CWE-1236)
+function sanitizeSpreadsheetCell(value) {
+  if (value === null || value === undefined) return '-';
+  if (typeof value === 'number') return value;
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  let str = String(value).trim();
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  return str;
+}
+
+function sanitizeCsvCell(v) {
+  if (v === null || v === undefined) return '""';
+  let str = String(v);
+  if (/^[=+\-@\t\r]/.test(str.trim())) {
+    str = `'${str}`;
+  }
+  return `"${str.replace(/"/g, '""')}"`;
+}
 const auth = require('../middlewares/auth');
 const config = require('../config/env');
 const paymentHelper = require('../helpers/payment-helper');
@@ -251,16 +272,16 @@ router.get(
 
       payments.forEach((p) => {
         sheet.addRow({
-          orderId: p.orderId,
-          paymentId: p.paymentId || '-',
-          displayName: p.displayName || '-',
-          username: p.username || '-',
-          role: p.role || '-',
-          zone: p.zone || '-',
-          circle: p.circle || '-',
-          amount: p.amount,
-          purpose: p.purpose || '-',
-          status: p.status ? p.status.toUpperCase() : '-',
+          orderId: sanitizeSpreadsheetCell(p.orderId),
+          paymentId: sanitizeSpreadsheetCell(p.paymentId),
+          displayName: sanitizeSpreadsheetCell(p.displayName),
+          username: sanitizeSpreadsheetCell(p.username),
+          role: sanitizeSpreadsheetCell(p.role),
+          zone: sanitizeSpreadsheetCell(p.zone),
+          circle: sanitizeSpreadsheetCell(p.circle),
+          amount: typeof p.amount === 'number' ? p.amount : Number(p.amount) || 0,
+          purpose: sanitizeSpreadsheetCell(p.purpose),
+          status: sanitizeSpreadsheetCell(p.status ? p.status.toUpperCase() : '-'),
           createdAt: p.createdAt ? new Date(p.createdAt).toLocaleString('en-IN') : '-',
           paidAt: p.paidAt ? new Date(p.paidAt).toLocaleString('en-IN') : '-',
         });
@@ -397,12 +418,12 @@ router.get(
           p.zone || '-',
           p.circle || '-',
           p.amount,
-          (p.purpose || '-').replace(/"/g, '""'),
+          p.purpose || '-',
           p.status ? p.status.toUpperCase() : '-',
           p.createdAt ? new Date(p.createdAt).toLocaleString('en-IN') : '-',
           p.paidAt ? new Date(p.paidAt).toLocaleString('en-IN') : '-',
         ]
-          .map((v) => `"${String(v)}"`)
+          .map(sanitizeCsvCell)
           .join(',');
         csvContent += line + '\n';
       });

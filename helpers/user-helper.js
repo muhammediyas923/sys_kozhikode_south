@@ -8,13 +8,18 @@ function normalize(val) {
   return typeof val === 'string' ? val.trim() : '';
 }
 
+function escapeRegex(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 async function seedSuperAdmin() {
   const database = db.getDb();
   const existing = await database
     .collection(collections.USERS_COLLECTION)
     .findOne({ role: 'SuperAdmin' });
   if (!existing) {
-    const password = config.adminSeed.password || 'SuperAdmin@1234';
+    const password = config.adminSeed.password;
     const hashed = await bcrypt.hash(password, 10);
     await database.collection(collections.USERS_COLLECTION).insertOne({
       unitName: 'Super Admin',
@@ -41,21 +46,18 @@ async function doLogin({ zone = '', circle = '', username, password, isAdminLogi
 
   let user;
 
-  // First, check if the username belongs to a SuperAdmin in the database
-  const superAdmin = await database
-    .collection(collections.USERS_COLLECTION)
-    .findOne({ role: 'SuperAdmin' });
+  if (isAdminLogin) {
+    // Admin login: verify exact SuperAdmin username
+    const superAdmin = await database
+      .collection(collections.USERS_COLLECTION)
+      .findOne({ role: 'SuperAdmin' });
 
-  const isSuperAdminAlias = ['sysadmin', 'superadmin', 'admin'].includes(uname.toLowerCase());
-
-  if (superAdmin && (superAdmin.username.toLowerCase() === uname.toLowerCase() || isSuperAdminAlias || isAdminLogin)) {
-    // Super Admin login — username only (no zone/circle required)
-    user = superAdmin;
-  } else {
-    if (isAdminLogin) {
+    if (!superAdmin || superAdmin.username.toLowerCase() !== uname.toLowerCase()) {
       return { status: false, message: 'Invalid credentials.' };
     }
-    // Unit user — must match zone, circle, username
+    user = superAdmin;
+  } else {
+    // Unit user login — must provide zone, circle, and match UnitUser role
     if (!zone || !circle) {
       return { status: false, message: 'Zone and Circle are required.' };
     }
@@ -75,27 +77,7 @@ async function doLogin({ zone = '', circle = '', username, password, isAdminLogi
     return { status: false, message: 'Your account is inactive. Contact the administrator.' };
   }
 
-  let match = await bcrypt.compare(pwd, user.password);
-
-  // In development, allow common dev admin passwords and auto-sync the hash
-  if (!match && user.role === 'SuperAdmin' && !config.app.isProduction) {
-    const devPasswords = [
-      config.adminSeed.password,
-      'admin',
-      'admin123',
-      'SuperAdmin@1234',
-      'sysadmin',
-      '12345',
-    ].filter(Boolean);
-
-    if (devPasswords.includes(pwd)) {
-      match = true;
-      const newHash = await bcrypt.hash(pwd, 10);
-      await database
-        .collection(collections.USERS_COLLECTION)
-        .updateOne({ _id: user._id }, { $set: { password: newHash, updatedAt: new Date() } });
-    }
-  }
+  const match = await bcrypt.compare(pwd, user.password);
 
   if (!match) {
     return { status: false, message: 'Invalid credentials.' };
@@ -118,13 +100,14 @@ async function doLogin({ zone = '', circle = '', username, password, isAdminLogi
 async function getAllUsers(filters = {}) {
   const database = db.getDb();
   const query = { role: 'UnitUser' };
-  if (filters.zone) query.zone = filters.zone;
-  if (filters.circle) query.circle = filters.circle;
-  if (filters.status) query.status = filters.status;
-  if (filters.search) {
+  if (typeof filters.zone === 'string' && filters.zone) query.zone = filters.zone;
+  if (typeof filters.circle === 'string' && filters.circle) query.circle = filters.circle;
+  if (typeof filters.status === 'string' && filters.status) query.status = filters.status;
+  if (typeof filters.search === 'string' && filters.search.trim()) {
+    const s = escapeRegex(filters.search.trim());
     query.$or = [
-      { unitName: { $regex: filters.search, $options: 'i' } },
-      { username: { $regex: filters.search, $options: 'i' } },
+      { unitName: { $regex: s, $options: 'i' } },
+      { username: { $regex: s, $options: 'i' } },
     ];
   }
   return database
@@ -135,6 +118,7 @@ async function getAllUsers(filters = {}) {
 }
 
 async function getUserById(id) {
+  if (!id || !ObjectId.isValid(id)) return null;
   const database = db.getDb();
   return database
     .collection(collections.USERS_COLLECTION)
@@ -194,6 +178,7 @@ async function createUser(data) {
 }
 
 async function updateUser(id, data) {
+  if (!id || !ObjectId.isValid(id)) return false;
   const database = db.getDb();
   const update = {
     $set: {
@@ -205,8 +190,8 @@ async function updateUser(id, data) {
       updatedAt: new Date(),
     },
   };
-  if (data.zoneId) update.$set.zoneId = new ObjectId(data.zoneId);
-  if (data.circleId) update.$set.circleId = new ObjectId(data.circleId);
+  if (data.zoneId && ObjectId.isValid(data.zoneId)) update.$set.zoneId = new ObjectId(data.zoneId);
+  if (data.circleId && ObjectId.isValid(data.circleId)) update.$set.circleId = new ObjectId(data.circleId);
 
   const result = await database
     .collection(collections.USERS_COLLECTION)
@@ -215,6 +200,7 @@ async function updateUser(id, data) {
 }
 
 async function deleteUser(id) {
+  if (!id || !ObjectId.isValid(id)) return false;
   const database = db.getDb();
   const result = await database
     .collection(collections.USERS_COLLECTION)
@@ -223,14 +209,16 @@ async function deleteUser(id) {
 }
 
 async function setUserStatus(id, status) {
+  if (!id || !ObjectId.isValid(id)) return false;
   const database = db.getDb();
   const result = await database
     .collection(collections.USERS_COLLECTION)
-    .updateOne({ _id: new ObjectId(id) }, { $set: { status, updatedAt: new Date() } });
+    .updateOne({ _id: new ObjectId(id) }, { $set: { status: normalize(status), updatedAt: new Date() } });
   return result.modifiedCount > 0;
 }
 
 async function resetPassword(id, newPassword) {
+  if (!id || !ObjectId.isValid(id)) return false;
   const database = db.getDb();
   const hashed = await bcrypt.hash(normalize(newPassword), 10);
   const result = await database

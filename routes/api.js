@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const { ObjectId } = require('mongodb');
 const auth = require('../middlewares/auth');
 const upload = require('../middlewares/upload');
@@ -10,6 +11,27 @@ const userHelper = require('../helpers/user-helper');
 const programHelper = require('../helpers/program-helper');
 const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
+
+// Formula injection defense (OWASP CWE-1236)
+function sanitizeSpreadsheetCell(value) {
+  if (value === null || value === undefined) return '-';
+  if (typeof value === 'number') return value;
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  let str = String(value).trim();
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  return str;
+}
+
+function sanitizeCsvCell(v) {
+  if (v === null || v === undefined) return '""';
+  let str = String(v);
+  if (/^[=+\-@\t\r]/.test(str.trim())) {
+    str = `'${str}`;
+  }
+  return `"${str.replace(/"/g, '""')}"`;
+}
 
 /* Disable HTTP Caching for all API Endpoints */
 router.use((req, res, next) => {
@@ -372,11 +394,11 @@ router.get('/admin/reports/export/excel', auth.requireApiLogin, auth.requireApiR
 
     data.forEach((row) => {
       sheet.addRow({
-        zone: row.zone || '',
-        circle: row.circle || '',
-        unitName: row.unitName || '',
-        username: row.username || '',
-        programTitle: row.programTitle || '',
+        zone: sanitizeSpreadsheetCell(row.zone),
+        circle: sanitizeSpreadsheetCell(row.circle),
+        unitName: sanitizeSpreadsheetCell(row.unitName),
+        username: sanitizeSpreadsheetCell(row.username),
+        programTitle: sanitizeSpreadsheetCell(row.programTitle),
         status: row.completed ? 'Completed' : 'Pending',
         completedAt: row.completedAt ? new Date(row.completedAt).toLocaleString() : '-',
       });
@@ -517,13 +539,13 @@ router.get('/admin/monthly-reports/export/excel', auth.requireApiLogin, auth.req
 
     rows.forEach(r => {
       sheet.addRow({
-        programTitle: r.programTitle,
-        userType: r.userType,
-        completedBy: r.completedBy,
-        username: r.username,
-        zone: r.zone || '-',
-        circle: r.circle || '-',
-        unit: r.unit || '-',
+        programTitle: sanitizeSpreadsheetCell(r.programTitle),
+        userType: sanitizeSpreadsheetCell(r.userType),
+        completedBy: sanitizeSpreadsheetCell(r.completedBy),
+        username: sanitizeSpreadsheetCell(r.username),
+        zone: sanitizeSpreadsheetCell(r.zone),
+        circle: sanitizeSpreadsheetCell(r.circle),
+        unit: sanitizeSpreadsheetCell(r.unit),
         target: r.target,
         completionCount: r.completionCount,
         remaining: r.remaining,
@@ -532,7 +554,7 @@ router.get('/admin/monthly-reports/export/excel', auth.requireApiLogin, auth.req
         completionDate: r.completionDate ? new Date(r.completionDate).toLocaleString() : '-',
         participantsCount: r.participantsCount || 0,
         imagesCount: r.imagesCount || 0,
-        notes: r.notes || '-'
+        notes: sanitizeSpreadsheetCell(r.notes)
       });
     });
 
@@ -653,8 +675,8 @@ router.get('/admin/monthly-reports/export/csv', auth.requireApiLogin, auth.requi
         r.completionDate ? new Date(r.completionDate).toLocaleString() : '-',
         r.participantsCount || 0,
         r.imagesCount || 0,
-        (r.notes || '-').replace(/"/g, '""')
-      ].map(v => `"${String(v)}"`).join(',');
+        r.notes || '-'
+      ].map(sanitizeCsvCell).join(',');
       csvContent += line + '\n';
     });
 
@@ -701,7 +723,7 @@ router.post('/unit/programs/:id/submit-completion',
 
       // Build image records from uploaded files
       const images = (req.files || []).map(f => ({
-        originalName: f.originalname,
+        originalName: path.basename(f.originalname).replace(/[^a-zA-Z0-9._-]/g, '_'),
         filename: f.filename,
         url: `/uploads/completions/${f.filename}`,
       }));
@@ -738,29 +760,35 @@ router.get('/unit/programs/:id/updates', auth.requireApiLogin, auth.requireApiRo
   } catch (error) { return next(error); }
 });
 
-// Edit an update
-router.put('/unit/programs/:id/updates/:updateId', auth.requireApiLogin, auth.requireApiRole('UnitUser'), async (req, res, next) => {
+// Edit an update (IDOR protected)
+router.put('/unit/programs/:id/updates/:updateId', auth.requireApiLogin, auth.requireApiRole('UnitUser', 'CircleUser', 'ZoneUser'), async (req, res, next) => {
   try {
     const user = req.session.user;
     const { completionCount, participantsCount, notes, completionDate } = req.body;
     const updateData = {};
-    if (completionCount !== undefined) updateData.completionCount = parseInt(completionCount, 10);
-    if (participantsCount !== undefined) updateData.participantsCount = parseInt(participantsCount, 10);
-    if (notes !== undefined) updateData.notes = notes;
-    if (completionDate !== undefined) updateData.completionDate = new Date(completionDate);
+    if (completionCount !== undefined) updateData.completionCount = Math.max(1, parseInt(completionCount, 10) || 1);
+    if (participantsCount !== undefined) updateData.participantsCount = Math.max(0, parseInt(participantsCount, 10) || 0);
+    if (notes !== undefined) updateData.notes = typeof notes === 'string' ? notes.slice(0, 500) : '';
+    if (completionDate !== undefined && !isNaN(new Date(completionDate).getTime())) updateData.completionDate = new Date(completionDate);
     updateData.updatedAt = new Date();
 
     const success = await programHelper.editProgramUpdate(req.params.updateId, req.params.id, user._id, updateData);
-    return res.json({ success });
+    if (!success) {
+      return res.status(403).json({ success: false, message: 'Update record not found or access denied.' });
+    }
+    return res.json({ success: true });
   } catch (error) { return next(error); }
 });
 
-// Delete an update
-router.delete('/unit/programs/:id/updates/:updateId', auth.requireApiLogin, auth.requireApiRole('UnitUser'), async (req, res, next) => {
+// Delete an update (IDOR protected)
+router.delete('/unit/programs/:id/updates/:updateId', auth.requireApiLogin, auth.requireApiRole('UnitUser', 'CircleUser', 'ZoneUser'), async (req, res, next) => {
   try {
     const user = req.session.user;
     const success = await programHelper.deleteProgramUpdate(req.params.updateId, req.params.id, user._id);
-    return res.json({ success });
+    if (!success) {
+      return res.status(403).json({ success: false, message: 'Update record not found or access denied.' });
+    }
+    return res.json({ success: true });
   } catch (error) { return next(error); }
 });
 

@@ -8,42 +8,9 @@ function normalize(val) {
 }
 
 async function seedDefaultCircles() {
-  const database = db.getDb();
-  const count = await database.collection(collections.CIRCLES_COLLECTION).countDocuments();
-  if (count > 0) return;
-
-  const zones = await database.collection(collections.ZONES_COLLECTION).find().toArray();
-  const zoneCircleCounts = [5, 5, 5, 5, 5, 5, 5, 5, 5, 4];
-  let circleIndex = 1;
-  let unitIndex = 1;
-  let extraUnits = 8;
-
-  for (let i = 0; i < zones.length; i++) {
-    const zone = zones[i];
-    const circleCount = zoneCircleCounts[i] || 5;
-    for (let c = 0; c < circleCount; c++) {
-      const unitsCount = 10 + (extraUnits > 0 ? 1 : 0);
-      if (extraUnits > 0) extraUnits--;
-      const units = [];
-      for (let u = 0; u < unitsCount; u++) {
-        units.push(`Unit ${unitIndex}`);
-        unitIndex++;
-      }
-      await database.collection(collections.CIRCLES_COLLECTION).insertOne({
-        name: `Circle ${circleIndex}`,
-        code: '',
-        username: '',
-        password: '',
-        status: 'Active',
-        zoneName: zone.name,
-        zoneId: zone._id,
-        units,
-        createdAt: new Date(),
-      });
-      circleIndex++;
-    }
-  }
-  console.log('Default circles seeded.');
+  // Automatic circle creation permanently disabled.
+  // Circles must only be created manually by Super Admin.
+  return;
 }
 
 async function getAllCircles() {
@@ -170,8 +137,8 @@ async function doCircleLogin({ zoneId, username, password }) {
   const uname = normalize(username);
   const pwd = normalize(password);
 
-  if (!zoneId || !uname || !pwd) {
-    return { status: false, message: 'Zone, username, and password are required.' };
+  if (!zoneId || !ObjectId.isValid(zoneId) || !uname || !pwd) {
+    return { status: false, message: 'Invalid credentials.' };
   }
 
   const user = await database.collection(collections.CIRCLES_COLLECTION).findOne({ 

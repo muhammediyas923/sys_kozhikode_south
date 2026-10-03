@@ -93,14 +93,14 @@ document.addEventListener('DOMContentLoaded', () => {
     tbody.innerHTML = users.map((u, index) => `
       <tr>
         <td>${index + 1}</td>
-        <td><strong>${u.unitName}</strong></td>
-        <td>${u.code || '—'}</td>
-        <td><code>${u.username}</code></td>
-        <td>${u.zone || '—'}</td>
-        <td>${u.circle || '—'}</td>
+        <td><strong>${escapeHtml(u.unitName)}</strong></td>
+        <td>${escapeHtml(u.code || '—')}</td>
+        <td><code>${escapeHtml(u.username)}</code></td>
+        <td>${escapeHtml(u.zone || '—')}</td>
+        <td>${escapeHtml(u.circle || '—')}</td>
         <td>
           <span class="ds-badge ${u.status === 'Active' ? 'ds-badge-success' : 'ds-badge-danger'}">
-            ${u.status}
+            ${escapeHtml(u.status)}
           </span>
         </td>
         <td>${formatDate(u.createdAt)}</td>
@@ -108,13 +108,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <button class="ds-btn ds-btn-outline ds-btn-sm edit-btn" data-id="${u._id}">
             <i class="ph ph-pencil-simple"></i> Edit
           </button>
-          <button class="ds-btn ds-btn-outline ds-btn-sm toggle-status-btn" data-id="${u._id}" data-status="${u.status}">
+          <button class="ds-btn ds-btn-outline ds-btn-sm toggle-status-btn" data-id="${u._id}" data-status="${escapeHtml(u.status)}">
             <i class="ph ${u.status === 'Active' ? 'ph-user-minus' : 'ph-user-check'}"></i> ${u.status === 'Active' ? 'Deactivate' : 'Activate'}
           </button>
-          <button class="ds-btn ds-btn-warning ds-btn-sm reset-pw-btn" data-id="${u._id}" data-username="${u.username}">
+          <button class="ds-btn ds-btn-warning ds-btn-sm reset-pw-btn" data-id="${u._id}" data-username="${escapeHtml(u.username)}">
             <i class="ph ph-key"></i> Password
           </button>
-          <button class="ds-btn ds-btn-danger ds-btn-sm delete-btn" data-id="${u._id}" data-unitname="${u.unitName}">
+          <button class="ds-btn ds-btn-danger ds-btn-sm delete-btn" data-id="${u._id}" data-unitname="${escapeHtml(u.unitName)}">
             <i class="ph ph-trash"></i> Delete
           </button>
         </td>

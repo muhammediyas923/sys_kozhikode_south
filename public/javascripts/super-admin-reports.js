@@ -111,11 +111,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <tr>
           <td>${index + 1}</td>
-          <td>${row.zone || '—'}</td>
-          <td>${row.circle || '—'}</td>
-          <td><strong>${row.unitName || '—'}</strong></td>
-          <td><code>${row.username || '—'}</code></td>
-          <td>${row.programTitle || '—'}</td>
+          <td>${escapeHtml(row.zone || '—')}</td>
+          <td>${escapeHtml(row.circle || '—')}</td>
+          <td><strong>${escapeHtml(row.unitName || '—')}</strong></td>
+          <td><code>${escapeHtml(row.username || '—')}</code></td>
+          <td>${escapeHtml(row.programTitle || '—')}</td>
           <td>${statusBadge}</td>
           <td>${row.completedAt ? formatDate(row.completedAt) : '—'}</td>
         </tr>

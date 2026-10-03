@@ -8,6 +8,11 @@ function normalize(val) {
   return typeof val === 'string' ? val.trim() : '';
 }
 
+function escapeRegex(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 async function getAllPrograms() {
   const database = db.getDb();
   const programs = await database
@@ -55,7 +60,7 @@ async function createProgram(data, files) {
   if (files && files.length) {
     files.forEach((f) => {
       attachments.push({
-        originalName: f.originalname,
+        originalName: path.basename(f.originalname).replace(/[^a-zA-Z0-9._-]/g, '_'),
         filename: f.filename,
         mimetype: f.mimetype,
         size: f.size,
@@ -126,7 +131,7 @@ async function updateProgram(id, data, files) {
 
   if (files && files.length) {
     const newAttachments = files.map((f) => ({
-      originalName: f.originalname,
+      originalName: path.basename(f.originalname).replace(/[^a-zA-Z0-9._-]/g, '_'),
       filename: f.filename,
       mimetype: f.mimetype,
       size: f.size,
@@ -496,11 +501,22 @@ async function getProgramUpdates(programId, userId) {
 }
 
 async function deleteProgramUpdate(updateId, programId, userId) {
+  if (!ObjectId.isValid(updateId) || !ObjectId.isValid(programId) || !ObjectId.isValid(userId)) {
+    return false;
+  }
   const database = db.getDb();
-  const updateObj = await database.collection(collections.PROGRAM_UPDATES_COLLECTION).findOne({ _id: new ObjectId(updateId) });
+  // IDOR Protection: Enforce that update record belongs to the requesting user
+  const updateObj = await database.collection(collections.PROGRAM_UPDATES_COLLECTION).findOne({
+    _id: new ObjectId(updateId),
+    userId: normalize(userId),
+    programId: new ObjectId(programId),
+  });
   if (!updateObj) return false;
 
-  await database.collection(collections.PROGRAM_UPDATES_COLLECTION).deleteOne({ _id: new ObjectId(updateId) });
+  await database.collection(collections.PROGRAM_UPDATES_COLLECTION).deleteOne({
+    _id: new ObjectId(updateId),
+    userId: normalize(userId),
+  });
 
   // Need unitData to recalculate
   const user = await database.collection(collections.USERS_COLLECTION).findOne({ _id: new ObjectId(userId) });
@@ -511,9 +527,20 @@ async function deleteProgramUpdate(updateId, programId, userId) {
 }
 
 async function editProgramUpdate(updateId, programId, userId, updateData) {
+  if (!ObjectId.isValid(updateId) || !ObjectId.isValid(programId) || !ObjectId.isValid(userId)) {
+    return false;
+  }
   const database = db.getDb();
+  // IDOR Protection: Enforce that update record belongs to the requesting user
+  const updateObj = await database.collection(collections.PROGRAM_UPDATES_COLLECTION).findOne({
+    _id: new ObjectId(updateId),
+    userId: normalize(userId),
+    programId: new ObjectId(programId),
+  });
+  if (!updateObj) return false;
+
   await database.collection(collections.PROGRAM_UPDATES_COLLECTION).updateOne(
-    { _id: new ObjectId(updateId) },
+    { _id: new ObjectId(updateId), userId: normalize(userId) },
     { $set: updateData }
   );
 
@@ -660,9 +687,11 @@ async function getCompletionReport(filters = {}) {
 
   // 1. Fetch matching users (units)
   const userQuery = { role: 'UnitUser' };
-  if (filters.zone) userQuery.zone = filters.zone;
-  if (filters.circle) userQuery.circle = filters.circle;
-  if (filters.unitName) userQuery.unitName = { $regex: filters.unitName, $options: 'i' };
+  if (typeof filters.zone === 'string' && filters.zone) userQuery.zone = filters.zone;
+  if (typeof filters.circle === 'string' && filters.circle) userQuery.circle = filters.circle;
+  if (typeof filters.unitName === 'string' && filters.unitName.trim()) {
+    userQuery.unitName = { $regex: escapeRegex(filters.unitName.trim()), $options: 'i' };
+  }
 
   const users = await database
     .collection(collections.USERS_COLLECTION)
@@ -671,7 +700,7 @@ async function getCompletionReport(filters = {}) {
 
   // 2. Fetch matching programs
   const programQuery = {};
-  if (filters.programId) {
+  if (filters.programId && ObjectId.isValid(filters.programId)) {
     programQuery._id = new ObjectId(filters.programId);
   } else {
     // If no program filter, report on published programs

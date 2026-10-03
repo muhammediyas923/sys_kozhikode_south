@@ -19,6 +19,29 @@ router.get('/user-selection', function (req, res) {
   res.render('user-selection', { layout: false });
 });
 
+const { loginLimiter } = require('../middlewares/rate-limiter');
+
+const crypto = require('crypto');
+const config = require('../config/env');
+
+function establishLoginSession(req, res, user, redirectPath, next) {
+  req.session.regenerate((err) => {
+    if (err) return next(err);
+    req.session.user = user;
+    req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+    res.cookie('sys.csrf', req.session.csrfToken, {
+      httpOnly: false,
+      sameSite: 'lax',
+      secure: config.app.isProduction,
+      path: '/'
+    });
+    req.session.save((saveErr) => {
+      if (saveErr) return next(saveErr);
+      return res.redirect(redirectPath);
+    });
+  });
+}
+
 /* GET Unit Login page */
 router.get('/login', function (req, res) {
   if (req.session.user) return res.redirect('/dashboard');
@@ -28,16 +51,17 @@ router.get('/login', function (req, res) {
 });
 
 /* POST Unit Login */
-router.post('/login', async function (req, res, next) {
+router.post('/login', loginLimiter, async function (req, res, next) {
   try {
     const { zone, circle, username, password } = req.body;
     const result = await userHelper.doLogin({ zone, circle, username, password });
-    if (!result.status) {
-      req.session.loginError = result.message;
+    if (!result.status || result.user.role !== 'UnitUser') {
+      req.session.loginError = result.user?.role !== 'UnitUser' && result.status
+        ? 'Access denied. Please use the appropriate portal.'
+        : result.message || 'Invalid credentials.';
       return res.redirect('/login');
     }
-    req.session.user = result.user;
-    return res.redirect('/dashboard');
+    return establishLoginSession(req, res, result.user, '/dashboard', next);
   } catch (error) {
     next(error);
   }
@@ -52,16 +76,15 @@ router.get('/circle-login', function (req, res) {
 });
 
 /* POST Circle Login */
-router.post('/circle-login', async function (req, res, next) {
+router.post('/circle-login', loginLimiter, async function (req, res, next) {
   try {
     const { zoneId, username, password } = req.body;
     const result = await circleHelper.doCircleLogin({ zoneId, username, password });
-    if (!result.status) {
-      req.session.loginError = result.message;
+    if (!result.status || result.user.role !== 'CircleUser') {
+      req.session.loginError = result.message || 'Invalid credentials.';
       return res.redirect('/circle-login');
     }
-    req.session.user = result.user;
-    return res.redirect('/dashboard');
+    return establishLoginSession(req, res, result.user, '/dashboard', next);
   } catch (error) {
     next(error);
   }
@@ -76,16 +99,15 @@ router.get('/zone-login', function (req, res) {
 });
 
 /* POST Zone Login */
-router.post('/zone-login', async function (req, res, next) {
+router.post('/zone-login', loginLimiter, async function (req, res, next) {
   try {
     const { username, password } = req.body;
     const result = await zoneHelper.doZoneLogin({ username, password });
-    if (!result.status) {
-      req.session.loginError = result.message;
+    if (!result.status || result.user.role !== 'ZoneUser') {
+      req.session.loginError = result.message || 'Invalid credentials.';
       return res.redirect('/zone-login');
     }
-    req.session.user = result.user;
-    return res.redirect('/dashboard');
+    return establishLoginSession(req, res, result.user, '/dashboard', next);
   } catch (error) {
     next(error);
   }
@@ -100,10 +122,9 @@ router.get('/admin/login', function (req, res) {
 });
 
 /* POST Admin Login */
-router.post('/admin/login', async function (req, res, next) {
+router.post('/admin/login', loginLimiter, async function (req, res, next) {
   try {
     const { username, password } = req.body;
-    // For admin login, zone and circle are bypassed, so we don't pass them
     const result = await userHelper.doLogin({ username, password, isAdminLogin: true });
     if (!result.status || result.user.role !== 'SuperAdmin') {
       req.session.loginError = result.user?.role !== 'SuperAdmin' && result.status
@@ -111,8 +132,7 @@ router.post('/admin/login', async function (req, res, next) {
         : result.message || 'Invalid credentials.';
       return res.redirect('/admin/login');
     }
-    req.session.user = result.user;
-    return res.redirect('/dashboard');
+    return establishLoginSession(req, res, result.user, '/dashboard', next);
   } catch (error) {
     next(error);
   }
@@ -121,6 +141,7 @@ router.post('/admin/login', async function (req, res, next) {
 /* Logout */
 router.get('/logout', function (req, res) {
   req.session.destroy(() => {
+    res.clearCookie('sys.sid', { path: '/' });
     res.redirect('/user-selection');
   });
 });

@@ -22,6 +22,9 @@ if (isProduction) {
   if (!process.env.RAZORPAY_KEY_SECRET) {
     missingSecrets.push('RAZORPAY_KEY_SECRET');
   }
+  if (!process.env.SUPER_ADMIN_PASSWORD || process.env.SUPER_ADMIN_PASSWORD === 'SuperAdmin@1234') {
+    missingSecrets.push('SUPER_ADMIN_PASSWORD (must not use default password in production)');
+  }
 
   if (missingSecrets.length > 0) {
     const errMessage = `[FATAL] Production configuration error: Missing required environment variables: ${missingSecrets.join(', ')}`;

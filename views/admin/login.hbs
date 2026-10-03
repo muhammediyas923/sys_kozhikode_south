@@ -369,6 +369,7 @@
         {{/if}}
 
         <form action="/admin/login" method="post" id="login-form">
+          <input type="hidden" name="_csrf" value="{{csrfToken}}">
           <div class="mb-3">
             <label class="ds-form-label" for="username-input">Admin Username</label>
             <input type="text" class="form-control" id="username-input" name="username" placeholder="e.g. admin"

@@ -107,6 +107,19 @@ function timeAgo(dateStr) {
   const days = Math.floor(hrs / 24);
   return `${days}d ago`;
 }
+
+// XSS Prevention: Safe HTML entity encoding
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+window.escapeHtml = escapeHtml;
+
 // Export
 window.dsUtils = {
   showToast,
@@ -115,5 +128,6 @@ window.dsUtils = {
   formatDate,
   formatDateTime,
   timeAgo,
+  escapeHtml,
   loadNotifications: () => {}
 };

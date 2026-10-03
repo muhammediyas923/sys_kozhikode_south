@@ -21,3 +21,14 @@ Thumbs.db
 
 # Uploads temporary files if needed
 uploads/temp/
+
+# Storage and Backups (Prevent database dumps from being committed)
+storage/
+storage/backups/
+*.zip
+
+# Public Uploads (User-uploaded evidence and attachments)
+public/uploads/completions/*
+public/uploads/programs/*
+!public/uploads/**/.gitkeep
+

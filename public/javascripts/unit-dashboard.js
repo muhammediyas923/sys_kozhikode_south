@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const attachmentsSection = p.attachments && p.attachments.length
         ? `<div class="mt-2 border-top pt-2"><strong style="font-size:0.75rem; color:var(--ds-text);">Attachments:</strong>` +
-        p.attachments.map(att => `<a href="${att.url}" target="_blank" class="d-inline-flex align-items-center gap-1 p-1 px-2 border rounded bg-light text-decoration-none small text-dark me-1 mt-1" style="font-size:0.75rem;"><i class="ph ph-download-simple"></i> ${att.originalName}</a>`).join('') + `</div>`
+        p.attachments.map(att => `<a href="${encodeURI(att.url)}" target="_blank" class="d-inline-flex align-items-center gap-1 p-1 px-2 border rounded bg-light text-decoration-none small text-dark me-1 mt-1" style="font-size:0.75rem;"><i class="ph ph-download-simple"></i> ${escapeHtml(att.originalName)}</a>`).join('') + `</div>`
         : '';
 
       const publishBadge = p.published ? '' : '<span class="ds-badge ds-badge-warning" style="font-size:0.72rem;">Draft</span>';
@@ -166,13 +166,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="ds-program-card ${cardClass}" data-id="${p._id}">
             ${ribbon}
             <div class="d-flex align-items-center justify-content-between mb-2">
-              <h3 class="ds-program-title mb-0">${p.title}</h3>
+              <h3 class="ds-program-title mb-0">${escapeHtml(p.title)}</h3>
               <div class="d-flex align-items-center gap-2">
                 ${publishBadge}
                 ${statusBadge}
               </div>
             </div>
-            <p class="ds-program-desc">${p.description || 'No description provided.'}</p>
+            <p class="ds-program-desc">${escapeHtml(p.description || 'No description provided.')}</p>
 
             <div class="ds-program-meta">
               <div class="ds-program-meta-item">
@@ -333,14 +333,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const updates = data.updates;
       listEl.innerHTML = updates.map(u => {
         const d = new Date(u.completionDate || u.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-        const imgs = (u.images || []).map(img => `<a href="${img.url}" target="_blank" class="d-inline-block me-1"><img src="${img.url}" style="width:36px; height:36px; object-fit:cover; border-radius:4px; border:1px solid #e2e8f0;"></a>`).join('');
+        const imgs = (u.images || []).map(img => `<a href="${encodeURI(img.url)}" target="_blank" class="d-inline-block me-1"><img src="${encodeURI(img.url)}" style="width:36px; height:36px; object-fit:cover; border-radius:4px; border:1px solid #e2e8f0;"></a>`).join('');
         return `
           <div class="mb-2 p-2 border rounded" style="background:#f8fafc; font-size:0.85rem;">
             <div class="d-flex justify-content-between align-items-center mb-1">
               <strong><i class="ph ph-calendar-blank"></i> ${d}</strong>
               <span class="ds-badge" style="background:#e0f2fe; color:#0369a1;"><i class="ph ph-users"></i> ${u.participantsCount || 0}</span>
             </div>
-            ${u.notes ? `<div class="text-muted mb-1" style="white-space:pre-wrap;">${u.notes}</div>` : ''}
+            ${u.notes ? `<div class="text-muted mb-1" style="white-space:pre-wrap;">${escapeHtml(u.notes)}</div>` : ''}
             ${imgs ? `<div class="mt-1">${imgs}</div>` : ''}
           </div>
         `;
@@ -407,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     container.innerHTML = completionImageFiles.map((f, i) => `
       <div style="position:relative; border-radius:8px; overflow:hidden; aspect-ratio:1; background:#e5e7eb;" data-idx="${i}">
-        <img src="${URL.createObjectURL(f)}" style="width:100%; height:100%; object-fit:cover;" alt="${f.name}">
+        <img src="${URL.createObjectURL(f)}" style="width:100%; height:100%; object-fit:cover;" alt="${escapeHtml(f.name)}">
         <button type="button" class="remove-img-btn" data-idx="${i}"
           style="position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.6); color:#fff; border:none; border-radius:50%; width:22px; height:22px; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;">
           ×

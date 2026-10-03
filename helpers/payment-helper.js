@@ -11,6 +11,11 @@ const razorpay = new Razorpay({
   key_secret: config.razorpay.keySecret,
 });
 
+function escapeRegex(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * Initialize MongoDB indexes for payments collection
  */
@@ -397,23 +402,23 @@ async function getAdminPaymentReports(filters = {}, pagination = {}, sort = {}) 
   const database = db.getDb();
   const query = {};
 
-  // Filters
-  if (filters.role) query.role = filters.role;
-  if (filters.zone) query.zone = filters.zone;
-  if (filters.circle) query.circle = filters.circle;
-  if (filters.unit) query.unit = { $regex: filters.unit, $options: 'i' };
-  if (filters.status) query.status = filters.status;
-  if (filters.purpose) query.purpose = filters.purpose;
+  // Filters (strictly type-checked against NoSQL operator injection)
+  if (typeof filters.role === 'string' && filters.role) query.role = filters.role;
+  if (typeof filters.zone === 'string' && filters.zone) query.zone = filters.zone;
+  if (typeof filters.circle === 'string' && filters.circle) query.circle = filters.circle;
+  if (typeof filters.unit === 'string' && filters.unit) query.unit = { $regex: escapeRegex(filters.unit.trim()), $options: 'i' };
+  if (typeof filters.status === 'string' && filters.status) query.status = filters.status;
+  if (typeof filters.purpose === 'string' && filters.purpose) query.purpose = filters.purpose;
 
   // Date filters
   if (filters.startDate || filters.endDate) {
     query.createdAt = {};
-    if (filters.startDate) {
+    if (filters.startDate && !isNaN(new Date(filters.startDate).getTime())) {
       const s = new Date(filters.startDate);
       s.setHours(0, 0, 0, 0);
       query.createdAt.$gte = s;
     }
-    if (filters.endDate) {
+    if (filters.endDate && !isNaN(new Date(filters.endDate).getTime())) {
       const e = new Date(filters.endDate);
       e.setHours(23, 59, 59, 999);
       query.createdAt.$lte = e;
@@ -435,9 +440,9 @@ async function getAdminPaymentReports(filters = {}, pagination = {}, sort = {}) 
     }
   }
 
-  // Text search
+  // Text search (ReDoS protected)
   if (filters.search && typeof filters.search === 'string') {
-    const s = filters.search.trim();
+    const s = escapeRegex(filters.search.trim());
     if (s) {
       query.$or = [
         { orderId: { $regex: s, $options: 'i' } },
@@ -530,20 +535,20 @@ async function getAllPaymentsForExport(filters = {}) {
   const database = db.getDb();
   const query = {};
 
-  if (filters.role) query.role = filters.role;
-  if (filters.zone) query.zone = filters.zone;
-  if (filters.circle) query.circle = filters.circle;
-  if (filters.status) query.status = filters.status;
-  if (filters.purpose) query.purpose = filters.purpose;
+  if (typeof filters.role === 'string' && filters.role) query.role = filters.role;
+  if (typeof filters.zone === 'string' && filters.zone) query.zone = filters.zone;
+  if (typeof filters.circle === 'string' && filters.circle) query.circle = filters.circle;
+  if (typeof filters.status === 'string' && filters.status) query.status = filters.status;
+  if (typeof filters.purpose === 'string' && filters.purpose) query.purpose = filters.purpose;
 
   if (filters.startDate || filters.endDate) {
     query.createdAt = {};
-    if (filters.startDate) {
+    if (filters.startDate && !isNaN(new Date(filters.startDate).getTime())) {
       const s = new Date(filters.startDate);
       s.setHours(0, 0, 0, 0);
       query.createdAt.$gte = s;
     }
-    if (filters.endDate) {
+    if (filters.endDate && !isNaN(new Date(filters.endDate).getTime())) {
       const e = new Date(filters.endDate);
       e.setHours(23, 59, 59, 999);
       query.createdAt.$lte = e;
@@ -551,7 +556,7 @@ async function getAllPaymentsForExport(filters = {}) {
   }
 
   if (filters.search && typeof filters.search === 'string') {
-    const s = filters.search.trim();
+    const s = escapeRegex(filters.search.trim());
     if (s) {
       query.$or = [
         { orderId: { $regex: s, $options: 'i' } },
@@ -582,4 +587,5 @@ module.exports = {
   getPaymentById,
   getAdminPaymentReports,
   getAllPaymentsForExport,
+  escapeRegex,
 };

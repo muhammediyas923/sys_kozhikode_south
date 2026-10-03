@@ -34,33 +34,50 @@ hbs.registerHelper('formatDate', function (date) {
   });
 });
 
+app.disable('x-powered-by');
+
+const securityHeaders = require('./middlewares/security-headers');
+app.use(securityHeaders);
+
 app.use(logger('dev'));
 // Capture rawBody for webhook HMAC verification while parsing JSON
 app.use(express.json({
+  limit: '5mb',
   verify: (req, res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false, limit: '5mb' }));
 app.use(cookieParser());
 app.use(session({
+  name: 'sys.sid',
   secret: config.session.secret,
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: config.session.maxAge }
+  cookie: {
+    httpOnly: true,
+    secure: config.app.isProduction,
+    sameSite: 'lax',
+    maxAge: config.session.maxAge,
+  }
 }));
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
       res.setHeader('Cache-Control', 'no-cache, must-revalidate');
     }
   }
 }));
 
+const csrfProtection = require('./middlewares/csrf');
+
 app.use(function (req, res, next) {
   res.locals.currentUser = req.session.user || null;
   next();
 });
+
+app.use(csrfProtection);
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
@@ -68,12 +85,12 @@ app.use('/api', apiRouter);
 app.use('/', paymentsRouter);
 
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   next(createError(404));
 });
 
 // error handler
-app.use(function(err, req, res, next) {
+app.use(function (err, req, res, next) {
   const status = err.status || err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
 

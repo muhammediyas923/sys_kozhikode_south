@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <tr>
           <td>${index + 1}</td>
-          <td><strong>${p.title}</strong></td>
+          <td><strong>${escapeHtml(p.title)}</strong></td>
           <td>${assignBadge}</td>
           <td>${statusBadge}</td>
           <td>${formatDate(p.createdAt)}</td>
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="ds-btn ds-btn-outline ds-btn-sm toggle-publish-btn" data-id="${p._id}" data-published="${p.published}">
               <i class="ph ${p.published ? 'ph-eye-closed' : 'ph-eye'}"></i> ${p.published ? 'Unpublish' : 'Publish'}
             </button>
-            <button class="ds-btn ds-btn-danger ds-btn-sm delete-btn" data-id="${p._id}" data-title="${p.title}"><i class="ph ph-trash"></i> Delete</button>
+            <button class="ds-btn ds-btn-danger ds-btn-sm delete-btn" data-id="${p._id}" data-title="${escapeHtml(p.title)}"><i class="ph ph-trash"></i> Delete</button>
           </td>
         </tr>
       `;
@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
               if (p.attachments && p.attachments.length) {
                 fileList.innerHTML = '<label class="ds-form-label mt-2">Current Attachments:</label>' +
-                  p.attachments.map(att => `<div class="d-flex align-items-center justify-content-between p-2 border rounded mb-1 bg-light"><span><i class="ph ph-file"></i> ${att.originalName}</span></div>`).join('');
+                  p.attachments.map(att => `<div class="d-flex align-items-center justify-content-between p-2 border rounded mb-1 bg-light"><span><i class="ph ph-file"></i> ${escapeHtml(att.originalName)}</span></div>`).join('');
               }
 
               document.getElementById('program-modal-title').textContent = 'Edit Program';
@@ -448,8 +448,8 @@ document.addEventListener('DOMContentLoaded', () => {
                   <tr style="vertical-align:middle;">
                     <td style="vertical-align:middle;">${roleDisplay}</td>
                     <td style="vertical-align:middle;">
-                      <strong>${c.unitName || c.circle || c.zone || c.username}</strong>
-                      ${c.username ? `<br><span class="text-muted" style="font-size:0.78rem;">(${c.username})</span>` : ''}
+                      <strong>${escapeHtml(c.unitName || c.circle || c.zone || c.username)}</strong>
+                      ${c.username ? `<br><span class="text-muted" style="font-size:0.78rem;">(${escapeHtml(c.username)})</span>` : ''}
                     </td>
                     <td style="vertical-align:middle;">
                       <div style="display:flex; align-items:center; gap:8px;">
@@ -460,10 +460,10 @@ document.addEventListener('DOMContentLoaded', () => {
                       </div>
                     </td>
                     <td style="vertical-align:middle; white-space:nowrap;">${c.completedAt ? new Date(c.completedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
-                    <td style="vertical-align:middle;"><span style="max-width:150px; display:inline-block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${(c.notes || '').replace(/"/g, '&quot;')}">${c.notes || '<span class="text-muted">—</span>'}</span></td>
+                    <td style="vertical-align:middle;"><span style="max-width:150px; display:inline-block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(c.notes || '')}">${c.notes ? escapeHtml(c.notes) : '<span class="text-muted">—</span>'}</span></td>
                     <td style="vertical-align:middle;">
                       ${images.length
-            ? images.map(img => `<a href="${img.url}" target="_blank"><img src="${img.url}" style="width:40px; height:40px; object-fit:cover; border-radius:6px; margin:2px; border:1px solid #e2e8f0;" title="${img.originalName || ''}"></a>`).join('')
+            ? images.map(img => `<a href="${encodeURI(img.url)}" target="_blank"><img src="${encodeURI(img.url)}" style="width:40px; height:40px; object-fit:cover; border-radius:6px; margin:2px; border:1px solid #e2e8f0;" title="${escapeHtml(img.originalName || '')}"></a>`).join('')
             : '<span class="text-muted">—</span>'}
                     </td>
                   </tr>

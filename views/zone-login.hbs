@@ -177,6 +177,7 @@
         </div>
         {{/if}}
         <form action="/zone-login" method="post">
+          <input type="hidden" name="_csrf" value="{{csrfToken}}">
           <div class="mb-3">
             <label class="form-label text-muted fw-semibold" style="font-size:0.85rem;">Username</label>
             <input type="text" class="form-control" name="username" placeholder="Enter Zone Username" required>

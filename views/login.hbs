@@ -477,6 +477,7 @@
         <div class="selected-path" id="selected-path"></div>
 
         <form action="/login" method="post" id="login-form">
+          <input type="hidden" name="_csrf" value="{{csrfToken}}">
           <input type="hidden" name="zone" id="input-zone">
           <input type="hidden" name="circle" id="input-circle">
 

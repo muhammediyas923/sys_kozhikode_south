@@ -8,34 +8,9 @@ function normalize(val) {
 }
 
 async function seedDefaultZones() {
-  const database = db.getDb();
-  const count = await database.collection(collections.ZONES_COLLECTION).countDocuments();
-  if (count > 0) return;
-
-  const defaultZones = [
-    { name: 'Koduvally' },
-    { name: 'Zone 2' },
-    { name: 'Zone 3' },
-    { name: 'Zone 4' },
-    { name: 'Zone 5' },
-    { name: 'Zone 6' },
-    { name: 'Zone 7' },
-    { name: 'Zone 8' },
-    { name: 'Zone 9' },
-    { name: 'Zone 10' }
-  ];
-
-  for (const zone of defaultZones) {
-    await database.collection(collections.ZONES_COLLECTION).insertOne({
-      name: zone.name,
-      code: '',
-      username: '',
-      password: '',
-      status: 'Active',
-      createdAt: new Date()
-    });
-  }
-  console.log('Default zones seeded.');
+  // Automatic zone creation permanently disabled.
+  // Zones must only be created manually by Super Admin.
+  return;
 }
 
 async function getAllZones() {

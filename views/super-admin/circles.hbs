@@ -264,17 +264,17 @@
             tbody.innerHTML = data.circles.map((c, i) => `
               <tr>
                 <td>${i + 1}</td>
-                <td>${c.zoneName}</td>
-                <td><strong>${c.name}</strong></td>
-                <td>${c.code || '-'}</td>
-                <td>${c.username || '-'}</td>
-                <td><span class="ds-badge ${c.status === 'Active' ? 'ds-badge-success' : 'ds-badge-secondary'}">${c.status || 'Active'}</span></td>
+                <td>${escapeHtml(c.zoneName)}</td>
+                <td><strong>${escapeHtml(c.name)}</strong></td>
+                <td>${escapeHtml(c.code || '-')}</td>
+                <td>${escapeHtml(c.username || '-')}</td>
+                <td><span class="ds-badge ${c.status === 'Active' ? 'ds-badge-success' : 'ds-badge-secondary'}">${escapeHtml(c.status || 'Active')}</span></td>
                 <td>
                   <div class="d-flex gap-2">
-                    <button class="ds-btn ds-btn-outline ds-btn-sm edit-btn" data-id="${c._id}" data-zone="${c.zoneId}" data-name="${c.name}" data-code="${c.code || ''}" data-username="${c.username || ''}" data-status="${c.status || 'Active'}">
+                    <button class="ds-btn ds-btn-outline ds-btn-sm edit-btn" data-id="${c._id}" data-zone="${c.zoneId}" data-name="${escapeHtml(c.name)}" data-code="${escapeHtml(c.code || '')}" data-username="${escapeHtml(c.username || '')}" data-status="${escapeHtml(c.status || 'Active')}">
                       <i class="ph ph-pencil-simple"></i> Edit
                     </button>
-                    <button class="ds-btn ds-btn-outline ds-btn-sm text-danger delete-btn" data-id="${c._id}" data-name="${c.name}">
+                    <button class="ds-btn ds-btn-outline ds-btn-sm text-danger delete-btn" data-id="${c._id}" data-name="${escapeHtml(c.name)}">
                       <i class="ph ph-trash"></i> Delete
                     </button>
                   </div>

@@ -237,16 +237,16 @@
             tbody.innerHTML = data.zones.map((z, i) => `
               <tr>
                 <td>${i + 1}</td>
-                <td><strong>${z.name}</strong></td>
-                <td>${z.code || '-'}</td>
-                <td>${z.username || '-'}</td>
-                <td><span class="ds-badge ${z.status === 'Active' ? 'ds-badge-success' : 'ds-badge-secondary'}">${z.status || 'Active'}</span></td>
+                <td><strong>${escapeHtml(z.name)}</strong></td>
+                <td>${escapeHtml(z.code || '-')}</td>
+                <td>${escapeHtml(z.username || '-')}</td>
+                <td><span class="ds-badge ${z.status === 'Active' ? 'ds-badge-success' : 'ds-badge-secondary'}">${escapeHtml(z.status || 'Active')}</span></td>
                 <td>
                   <div class="d-flex gap-2">
-                    <button class="ds-btn ds-btn-outline ds-btn-sm edit-btn" data-id="${z._id}" data-name="${z.name}" data-code="${z.code || ''}" data-username="${z.username || ''}" data-status="${z.status || 'Active'}">
+                    <button class="ds-btn ds-btn-outline ds-btn-sm edit-btn" data-id="${z._id}" data-name="${escapeHtml(z.name)}" data-code="${escapeHtml(z.code || '')}" data-username="${escapeHtml(z.username || '')}" data-status="${escapeHtml(z.status || 'Active')}">
                       <i class="ph ph-pencil-simple"></i> Edit
                     </button>
-                    <button class="ds-btn ds-btn-outline ds-btn-sm text-danger delete-btn" data-id="${z._id}" data-name="${z.name}">
+                    <button class="ds-btn ds-btn-outline ds-btn-sm text-danger delete-btn" data-id="${z._id}" data-name="${escapeHtml(z.name)}">
                       <i class="ph ph-trash"></i> Delete
                     </button>
                   </div>
