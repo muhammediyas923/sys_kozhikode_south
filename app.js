@@ -14,6 +14,10 @@ var paymentsRouter = require('./routes/payments');
 
 var app = express();
 
+// Trust reverse proxy (e.g., Render, Nginx, Cloudflare) so Express respects X-Forwarded-Proto
+// and express-session sets secure cookies in production environments
+app.set('trust proxy', 1);
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
@@ -116,5 +120,3 @@ app.use(function (err, req, res, next) {
 });
 
 module.exports = app;
-// trigger restart
-// trigger restart 2
